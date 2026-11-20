@@ -33,6 +33,8 @@
       <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 8-4 4 4 4M16 8l4 4-4 4"/></symbol>
       <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="7.5" r="1.5"/></symbol>
       <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+      <symbol id="i-zip" viewBox="0 0 24 24"><path d="M6 3h9l5 5v13H6z"/><path d="M14 3v6h6M11 7h1M11 10h1M11 13h1M10 16h3v3h-3z"/></symbol>
     </defs>
   </svg>
 
@@ -58,7 +60,35 @@
         </button>
         <button class="sq-btn big tile-yellow" id="pickBtn" type="button" aria-label="Escolher vídeos"><svg class="ic lg"><use href="#i-plus"/></svg></button>
       </div>
-      <p class="drop-hint">MP4, MOV, M4V, 3GP, WebM e MKV. Pode escolher vários de uma vez. Os arquivos são lidos só na memória do navegador.</p>
+      <p class="drop-hint">Vídeo a vídeo: cada um é baixado separado. MP4, MOV, M4V, 3GP, WebM e MKV. Os arquivos são lidos só na memória do navegador.</p>
+
+      <div class="folder zip-mode" style="--tab: var(--purple)">
+        <div class="fc-top">
+          <span class="tile" style="--tile: var(--purple)"><svg class="ic"><use href="#i-zip"/></svg></span>
+          <div class="fc-info">
+            <h3>Pasta inteira → um .zip</h3>
+            <span class="sub">Até 100 vídeos de uma vez. No fim você baixa um único .zip com todos limpos.</span>
+          </div>
+        </div>
+        <div class="fc-actions">
+          <input id="folderInput" type="file" webkitdirectory directory multiple hidden>
+          <input id="zipFilesInput" type="file" accept="video/*,.mov,.mp4,.m4v,.webm,.mkv,.3gp" multiple hidden>
+          <button class="btn primary" id="folderBtn" type="button"><svg class="ic sm"><use href="#i-folder"/></svg> Importar pasta</button>
+          <button class="link-btn" id="zipPickBtn" type="button">ou escolher vários vídeos para o .zip</button>
+        </div>
+        <p class="sub">Também dá para arrastar uma pasta para esta página.</p>
+      </div>
+    </section>
+
+    <!-- Opção que vale para os dois modos -->
+    <div id="options" class="files options" hidden>
+      <label class="check"><input type="checkbox" id="randomName" checked> <span>Nomes de arquivo aleatórios (o nome original, como <code>VID_20250601_102030</code>, também revela a data). Vale para os downloads e para os nomes dentro do .zip.</span></label>
+    </div>
+
+    <!-- Pastas (modo .zip) -->
+    <section id="groups" class="files" hidden>
+      <div class="files-bar"><h2 class="section-title">Pastas para .zip</h2></div>
+      <div id="groupList" class="file-list"></div>
     </section>
 
     <!-- Lista de arquivos -->
@@ -70,7 +100,6 @@
           <button class="btn" id="clearList" type="button">Limpar lista</button>
         </div>
       </div>
-      <label class="check"><input type="checkbox" id="randomName" checked> <span>Nome de arquivo aleatório no download (o nome original, como <code>VID_20250601_102030</code>, também revela a data)</span></label>
       <div id="fileList" class="file-list"></div>
     </section>
 
@@ -105,7 +134,7 @@
     </section>
 
     <footer class="app-foot">
-      Vídeo Limpo <b>v2.0.0</b> · código aberto (MIT) ·
+      Vídeo Limpo <b>v2.1.0</b> · código aberto (MIT) ·
       <a href="https://github.com/ast1500/Relogio-Digital" rel="noopener">GitHub</a>
     </footer>
   </div>
@@ -113,6 +142,7 @@
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
   <script src="metadata.js"></script>
+  <script src="zip.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

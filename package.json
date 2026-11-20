@@ -1,6 +1,6 @@
 {
   "name": "relogio-digital",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Vídeo Limpo: remove GPS, modelo do aparelho, datas e outros metadados de vídeos, direto no navegador. Inclui também o Relógio Digital.",
   "private": true,
   "license": "MIT",

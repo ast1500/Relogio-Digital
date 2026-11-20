@@ -3,8 +3,12 @@
   'use strict';
 
   const $ = (id) => document.getElementById(id);
-  const items = [];          // { id, file, result, status, error, progress, remaining, mode }
-  let nextId = 1;
+  const items = [];          // { id, file, rel, group, result, status, error, progress, remaining, mode, out }
+  const groups = [];         // pastas: { id, name, status, current, progress, allowDeep, zip, zipName, cancel }
+  let nextId = 1, nextGroup = 1;
+  const MAX_FOLDER = 100;
+  const VIDEO_EXT = /\.(mp4|mov|m4v|3gp|3g2|webm|mkv|avi|mts|m2ts|wmv|flv|ogv|mpg|mpeg|hevc)$/i;
+  const isVideo = (f) => f && f.size > 0 && !f.name.startsWith('.') && (VIDEO_EXT.test(f.name) || (f.type || '').startsWith('video/'));
 
   // ---------- utilidades ----------
 
@@ -29,11 +33,10 @@
       setTimeout(() => URL.revokeObjectURL(a.href), 60000);
     }, wait);
   }
+  const randomHex = () => Array.from(crypto.getRandomValues(new Uint8Array(4)), (b) => b.toString(16).padStart(2, '0')).join('');
+  const useRandomNames = () => $('randomName').checked;
   function outputName(file, ext) {
-    if ($('randomName').checked) {
-      const rnd = Array.from(crypto.getRandomValues(new Uint8Array(4)), (b) => b.toString(16).padStart(2, '0')).join('');
-      return 'video-' + rnd + ext;
-    }
+    if (useRandomNames()) return 'video-' + randomHex() + ext;
     return file.name.replace(/\.[^.]+$/, '') + '-limpo' + ext;
   }
   const extOf = (file) => ((file.name.match(/\.[^.]+$/) || ['.mp4'])[0]).toLowerCase();
@@ -115,6 +118,7 @@
   }
 
   function renderItem(it) {
+    if (it.group) return renderGroup(groups.find((g) => g.id === it.group));
     const old = document.querySelector('.fcard[data-id="' + it.id + '"]');
     const tmp = document.createElement('div'); tmp.innerHTML = cardHtml(it);
     const el = tmp.firstElementChild;
@@ -124,35 +128,63 @@
       old.replaceWith(el);
     } else $('fileList').appendChild(el);
   }
+  const singles = () => items.filter((it) => !it.group);
   function renderAll() {
-    $('files').hidden = items.length === 0;
+    const single = singles();
+    $('files').hidden = single.length === 0;
+    $('groups').hidden = groups.length === 0;
+    $('options').hidden = items.length === 0;
     $('dropzone').classList.toggle('compact', items.length > 0);
     $('fileList').innerHTML = '';
-    items.forEach(renderItem);
+    single.forEach(renderItem);
+    $('groupList').innerHTML = '';
+    groups.forEach(renderGroup);
     updateBar();
   }
   function updateBar() {
-    const pending = items.filter((it) => it.result && it.status === 'ready').length;
-    $('cleanAll').disabled = pending === 0 || items.some((it) => it.status === 'cleaning');
+    const single = singles();
+    const pending = single.filter((it) => it.result && it.status === 'ready').length;
+    $('cleanAll').disabled = pending === 0 || single.some((it) => it.status === 'cleaning');
     $('cleanAll').lastChild.textContent = pending > 1 ? ' Limpar todos (' + pending + ')' : ' Limpar todos';
-    $('filesTitle').textContent = items.length === 1 ? 'Seu vídeo' : 'Seus vídeos (' + items.length + ')';
+    $('filesTitle').textContent = single.length === 1 ? 'Seu vídeo' : 'Seus vídeos (' + single.length + ')';
   }
 
   // ---------- adicionar arquivos ----------
 
+  function makeItem(file, group, rel) {
+    const it = { id: nextId++, file, rel: rel || file.webkitRelativePath || file.name, group: group || null, result: null, status: 'analyzing' };
+    items.push(it);
+    it.analysis = VideoMeta.analyze(file)
+      .then((r) => { it.result = r; it.status = 'ready'; })
+      .catch((e) => { it.status = 'error'; it.error = 'Não foi possível ler este arquivo: ' + e.message; })
+      .finally(() => { renderItem(it); updateBar(); });
+    return it;
+  }
+
   function addFiles(list) {
     const files = Array.from(list || []).filter((f) => f && f.size);
     if (!files.length) return;
-    for (const file of files) {
-      const it = { id: nextId++, file, result: null, status: 'analyzing' };
-      items.push(it);
-      VideoMeta.analyze(file)
-        .then((r) => { it.result = r; it.status = 'ready'; })
-        .catch((e) => { it.status = 'error'; it.error = 'Não foi possível ler este arquivo: ' + e.message; })
-        .finally(() => { renderItem(it); updateBar(); });
-    }
+    files.forEach((f) => makeItem(f));
     renderAll();
     $('files').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /** Pasta (ou seleção múltipla) que vira um .zip. `entries`: [{ file, rel }]. */
+  function addFolder(entries, name) {
+    const videos = entries.filter((e) => isVideo(e.file));
+    const ignored = entries.length - videos.length;
+    if (!videos.length) return toast('Nenhum vídeo encontrado' + (name ? ' em "' + name + '"' : '') + '.', true);
+    videos.sort((a, b) => a.rel.localeCompare(b.rel, 'pt-BR', { numeric: true }));
+    const taken = videos.slice(0, MAX_FOLDER);
+    const g = { id: nextGroup++, name: name || 'Vídeos selecionados', status: 'idle', current: 0, progress: 0, allowDeep: false };
+    groups.push(g);
+    taken.forEach((e) => makeItem(e.file, g.id, e.rel));
+    renderAll();
+    $('groups').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const notes = [];
+    if (videos.length > MAX_FOLDER) notes.push('Só os primeiros ' + MAX_FOLDER + ' de ' + videos.length + ' vídeos foram importados.');
+    if (ignored > 0) notes.push(ignored + ' arquivo(s) ignorado(s): não são vídeo, estão vazios ou são ocultos.');
+    if (notes.length) toast(notes.join(' '), videos.length > MAX_FOLDER);
   }
 
   // ---------- limpeza rápida ----------
@@ -192,7 +224,18 @@
     const fmt = pickFormat();
     if (!fmt) return toast('Este navegador não grava vídeo. Tente o Chrome, Edge ou Firefox.', true);
     it.status = 'cleaning'; it.mode = 'deep'; it.progress = 0; it.cancel = false; renderItem(it); updateBar();
+    try {
+      const out = await recordDeep(it, fmt, () => it.cancel);
+      if (!out) { it.status = 'ready'; toast('Limpeza profunda cancelada.'); return; }
+      it.remaining = out.remaining; it.status = 'done';
+      download(out.blob, outputName(it.file, out.ext));
+    } catch (e) {
+      it.status = 'error'; it.error = 'Limpeza profunda falhou: ' + e.message + '.';
+    } finally { renderItem(it); updateBar(); }
+  }
 
+  /** Grava o vídeo de novo, do zero. Devolve { blob, ext, remaining } ou null se cancelado. */
+  async function recordDeep(it, fmt, isCancelled) {
     const url = URL.createObjectURL(it.file);
     const video = document.createElement('video');
     video.className = 'offscreen'; video.playsInline = true; video.preload = 'auto'; video.src = url;
@@ -233,7 +276,7 @@
           ctx.drawImage(video, 0, 0, W, H);
           it.progress = Math.min(1, video.currentTime / dur);
           if (Date.now() - lastPaint > 400) { lastPaint = Date.now(); renderItem(it); }
-          if (it.cancel || video.ended) return finish();
+          if (isCancelled() || video.ended) return finish();
           if (useVfc) video.requestVideoFrameCallback(step); else requestAnimationFrame(step);
         };
         video.addEventListener('ended', finish, { once: true });
@@ -242,19 +285,192 @@
       video.pause();
       if (rec.state !== 'inactive') rec.stop();
       await stopped;
-      if (it.cancel) { it.status = 'ready'; toast('Limpeza profunda cancelada.'); return; }
+      if (isCancelled()) return null;
 
       let blob = new Blob(chunks, { type: fmt[0].split(';')[0] });
       try { blob = (await VideoMeta.clean(blob)).blob; } catch (e) { /* o arquivo gravado já não tem nada do original */ }
       const after = await VideoMeta.analyze(blob);
-      it.remaining = after.findings.length; it.status = 'done';
-      download(blob, outputName(it.file, fmt[1]));
-    } catch (e) {
-      it.status = 'error'; it.error = 'Limpeza profunda falhou: ' + e.message + '.';
+      return { blob, ext: fmt[1], remaining: after.findings.length };
     } finally {
       video.remove(); URL.revokeObjectURL(url);
-      renderItem(it); updateBar();
     }
+  }
+
+  // ---------- pasta → .zip ----------
+
+  const groupItems = (g) => items.filter((it) => it.group === g.id);
+
+  function rowHtml(it) {
+    const r = it.result, f = r ? r.findings : [];
+    const high = f.filter((x) => x.severity === 'alta').length;
+    let chip;
+    if (it.status === 'analyzing') chip = '<span class="chip">analisando…</span>';
+    else if (it.status === 'error') chip = '<span class="chip hot" title="' + esc(it.error || '') + '">erro</span>';
+    else if (it.status === 'skipped') chip = '<span class="chip">fora do ZIP</span>';
+    else if (it.status === 'cleaning') chip = '<span class="chip">' + (it.mode === 'deep' ? 'profunda ' + Math.round((it.progress || 0) * 100) + '%' : 'limpando…') + '</span>';
+    else if (it.status === 'done') chip = '<span class="chip ok">✓ limpo</span>';
+    else if (r && r.format === 'unknown') chip = '<span class="chip">formato desconhecido</span>';
+    else if (r) chip = (f.length ? '<span class="chip">' + f.length + '</span>' : '<span class="chip ok">nada</span>') + (high ? '<span class="chip hot">' + high + ' sensível(is)</span>' : '');
+    return '<li class="g-row"><span class="g-dot" style="background:' + riskColor(it) + '"></span>' +
+      '<span class="g-name" title="' + esc(it.rel) + '">' + esc(it.rel) + '</span><span class="g-size">' + fmtSize(it.file.size) + '</span>' +
+      '<span class="g-chips">' + (chip || '') + '</span></li>';
+  }
+
+  function groupHtml(g) {
+    const list = groupItems(g);
+    const ready = list.filter((it) => it.result).length;
+    const analyzing = list.some((it) => it.status === 'analyzing');
+    const totalFind = list.reduce((s, it) => s + (it.result ? it.result.findings.length : 0), 0);
+    const sens = list.filter((it) => it.result && it.result.findings.some((f) => f.severity === 'alta')).length;
+    const deepCount = list.filter((it) => needsDeep(it)).length;
+    const size = list.reduce((s, it) => s + it.file.size, 0);
+    const busy = g.status === 'cleaning' || g.status === 'zipping';
+
+    let chips = '<span class="chip">' + list.length + ' vídeo(s)</span>';
+    if (analyzing) chips += '<span class="chip">analisando ' + ready + '/' + list.length + '…</span>';
+    else {
+      chips += '<span class="chip">' + totalFind + ' metadado(s)</span>';
+      if (sens) chips += '<span class="chip hot">' + sens + ' com GPS ou dados sensíveis</span>';
+    }
+
+    let body = '';
+    if (deepCount && g.status === 'idle') {
+      body += '<label class="check"><input type="checkbox" data-gact="deep"' + (g.allowDeep ? ' checked' : '') + '> <span>Usar limpeza profunda nos ' + deepCount +
+        ' vídeo(s) que a rápida não alcança (trilha de GPS ou formato desconhecido). É lenta: leva o tempo de duração de cada vídeo. Sem ela, esses vídeos ficam fora do ZIP.</span></label>';
+    }
+    let actions = '';
+    if (g.status === 'cleaning') {
+      const pct = Math.round(g.progress * 100);
+      actions = '<div class="progress"><div style="width:' + pct + '%"></div></div><span class="sub">Limpando ' + Math.min(g.current + 1, list.length) + ' de ' + list.length + '… (mantenha a aba aberta)</span>' +
+        '<button class="btn small" data-gact="cancel" type="button">Cancelar</button>';
+    } else if (g.status === 'zipping') {
+      actions = '<div class="progress"><div style="width:' + Math.round(g.progress * 100) + '%"></div></div><span class="sub">Montando o ZIP… ' + Math.round(g.progress * 100) + '%</span>';
+    } else if (g.status === 'done') {
+      actions = '<p class="g-done">✓ ZIP pronto: ' + g.zipCount + ' vídeo(s) limpo(s), ' + fmtSize(g.zip.size) + (g.skipped ? ' · ' + g.skipped + ' fora do ZIP' : '') + '</p>' +
+        '<button class="btn" data-gact="download" type="button"><svg class="ic sm"><use href="#i-download"/></svg> Baixar o ZIP de novo</button>';
+    } else {
+      actions = '<button class="btn green" data-gact="clean" type="button"' + (analyzing ? ' disabled' : '') + '><svg class="ic sm"><use href="#i-bolt"/></svg> Limpar tudo e baixar ZIP</button>';
+    }
+
+    return '<article class="folder gcard" data-gid="' + g.id + '" style="--tab: var(--purple)">' +
+      '<div class="fc-top"><span class="tile" style="--tile: var(--purple)"><svg class="ic"><use href="#i-folder"/></svg></span>' +
+      '<div class="fc-info"><h3>' + esc(g.name) + '</h3><span class="sub">' + fmtSize(size) + ' · vira um único .zip</span><div class="chips">' + chips + '</div></div>' +
+      (busy ? '' : '<button class="mini" data-gact="remove" type="button" title="Tirar da lista" aria-label="Tirar pasta da lista"><svg class="ic sm"><use href="#i-x"/></svg></button>') +
+      '</div>' + body +
+      '<details class="fc-details"' + (g.open ? ' open' : '') + '><summary>Ver os ' + list.length + ' vídeo(s)</summary><ol class="g-list">' + list.map(rowHtml).join('') + '</ol></details>' +
+      '<div class="fc-actions">' + actions + '</div></article>';
+  }
+
+  let groupPaint = 0;
+  function renderGroup(g, force) {
+    if (!g) return;
+    const old = document.querySelector('.gcard[data-gid="' + g.id + '"]');
+    // durante a limpeza, redesenha no máximo ~3 vezes por segundo (até 100 linhas)
+    if (old && !force && g.status === 'cleaning' && Date.now() - groupPaint < 300) return;
+    groupPaint = Date.now();
+    if (old) g.open = old.querySelector('.fc-details')?.open || false;
+    const tmp = document.createElement('div'); tmp.innerHTML = groupHtml(g);
+    if (old) old.replaceWith(tmp.firstElementChild); else $('groupList').appendChild(tmp.firstElementChild);
+  }
+
+  function zipEntryName(it, ext, used) {
+    let name;
+    if (useRandomNames()) name = 'video-' + randomHex() + ext;
+    else {
+      const parts = it.rel.split('/'); if (parts.length > 1) parts.shift(); // tira o nome da pasta principal
+      name = parts.join('/').replace(/\.[^./]+$/, '') + '-limpo' + ext;
+    }
+    let final = name, n = 2;
+    while (used.has(final.toLowerCase())) final = name.replace(/(\.[^./]+)$/, ' (' + n++ + ')$1');
+    used.add(final.toLowerCase());
+    return final;
+  }
+
+  async function cleanGroup(g) {
+    const list = groupItems(g);
+    await Promise.all(list.map((it) => it.analysis));
+    const fmt = pickFormat();
+    g.status = 'cleaning'; g.cancel = false; g.progress = 0; renderGroup(g, true);
+    const totalBytes = list.reduce((s, it) => s + it.file.size, 0) || 1;
+    let doneBytes = 0;
+
+    for (let i = 0; i < list.length && !g.cancel; i++) {
+      const it = list[i]; g.current = i;
+      if (it.status === 'error') { doneBytes += it.file.size; continue; }
+      const wantDeep = needsDeep(it) && g.allowDeep && fmt;
+      try {
+        if (wantDeep) {
+          it.status = 'cleaning'; it.mode = 'deep'; it.progress = 0; renderGroup(g, true);
+          const out = await recordDeep(it, fmt, () => g.cancel);
+          if (!out) break;
+          it.out = out; it.remaining = out.remaining; it.status = 'done';
+        } else if (it.result && it.result.cleanable) {
+          it.status = 'cleaning'; it.mode = 'quick'; renderGroup(g);
+          const { blob } = await VideoMeta.clean(it.file);
+          const after = await VideoMeta.analyze(blob);
+          it.out = { blob, ext: extOf(it.file) }; it.remaining = after.findings.length; it.status = 'done';
+        } else {
+          it.status = 'skipped';
+        }
+      } catch (e) { it.status = 'error'; it.error = e.message; }
+      doneBytes += it.file.size;
+      g.progress = doneBytes / totalBytes;
+      renderGroup(g);
+    }
+    if (g.cancel) {
+      list.forEach((it) => { if (it.status === 'cleaning') it.status = 'ready'; });
+      g.status = 'idle'; renderGroup(g, true); return toast('Limpeza da pasta cancelada.');
+    }
+
+    const used = new Set();
+    const entries = list.filter((it) => it.status === 'done' && it.out).map((it) => ({ name: zipEntryName(it, it.out.ext, used), blob: it.out.blob }));
+    g.skipped = list.length - entries.length;
+    if (!entries.length) { g.status = 'idle'; renderGroup(g, true); return toast('Nenhum vídeo pôde ser limpo nesta pasta.', true); }
+
+    g.status = 'zipping'; g.progress = 0; renderGroup(g, true);
+    let lastZipPaint = 0;
+    g.zip = await MiniZip.createZip(entries, (done, total) => {
+      g.progress = total ? done / total : 1;
+      if (Date.now() - lastZipPaint > 250) { lastZipPaint = Date.now(); renderGroup(g, true); }
+    });
+    g.zipCount = entries.length;
+    g.zipName = useRandomNames() ? 'videos-limpos-' + randomHex() + '.zip' : g.name.replace(/[\\/:*?"<>|]+/g, '_') + '-limpo.zip';
+    g.status = 'done'; renderGroup(g, true);
+    download(g.zip, g.zipName);
+    toast('ZIP pronto com ' + entries.length + ' vídeo(s) limpo(s).' + (g.skipped ? ' ' + g.skipped + ' ficaram de fora (veja a lista).' : ''));
+  }
+
+  $('groupList').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-gact]'); if (!btn || btn.tagName === 'INPUT') return;
+    const g = groups.find((x) => x.id === Number(btn.closest('.gcard').dataset.gid)); if (!g) return;
+    const act = btn.dataset.gact;
+    if (act === 'clean') cleanGroup(g);
+    else if (act === 'cancel') g.cancel = true;
+    else if (act === 'download') download(g.zip, g.zipName);
+    else if (act === 'remove') {
+      for (let i = items.length - 1; i >= 0; i--) if (items[i].group === g.id) items.splice(i, 1);
+      groups.splice(groups.indexOf(g), 1); renderAll();
+    }
+  });
+  $('groupList').addEventListener('change', (e) => {
+    if (e.target.dataset.gact !== 'deep') return;
+    const g = groups.find((x) => x.id === Number(e.target.closest('.gcard').dataset.gid));
+    if (g) g.allowDeep = e.target.checked;
+  });
+
+  // Ler pastas arrastadas (Chrome, Edge, Firefox, Safari no computador)
+  function readEntry(entry, out) {
+    return new Promise((resolve) => {
+      if (entry.isFile) entry.file((f) => { out.push({ file: f, rel: entry.fullPath.replace(/^\//, '') }); resolve(); }, () => resolve());
+      else if (entry.isDirectory) {
+        const reader = entry.createReader(); const all = [];
+        const next = () => reader.readEntries(async (batch) => {
+          if (!batch.length) { for (const e of all) await readEntry(e, out); resolve(); }
+          else { all.push(...batch); next(); }
+        }, () => resolve());
+        next();
+      } else resolve();
+    });
   }
 
   // ---------- ações ----------
@@ -270,7 +486,7 @@
   });
 
   $('cleanAll').addEventListener('click', async () => {
-    const todo = items.filter((it) => it.result && it.status === 'ready');
+    const todo = singles().filter((it) => it.result && it.status === 'ready');
     for (const it of todo) {
       // rápida sempre que possível; quem precisar da profunda continua com o botão no cartão
       if (it.result.cleanable) await quickClean(it); else await deepClean(it);
@@ -279,17 +495,44 @@
     toast(todo.length + ' vídeo(s) processado(s).' + (left ? ' ' + left + ' ainda pode(m) usar a limpeza profunda.' : ''));
   });
   $('clearList').addEventListener('click', () => {
-    if (items.some((it) => it.status === 'cleaning')) return toast('Espere terminar a limpeza em andamento.', true);
-    items.length = 0; renderAll();
+    if (singles().some((it) => it.status === 'cleaning')) return toast('Espere terminar a limpeza em andamento.', true);
+    for (let i = items.length - 1; i >= 0; i--) if (!items[i].group) items.splice(i, 1);
+    renderAll();
   });
 
   const pick = () => $('fileInput').click();
   $('pickBtn').addEventListener('click', pick);
   $('pickBar').addEventListener('click', pick);
   $('fileInput').addEventListener('change', (e) => { addFiles(e.target.files); e.target.value = ''; });
+  $('folderBtn').addEventListener('click', () => $('folderInput').click());
+  $('folderInput').addEventListener('change', (e) => {
+    const files = Array.from(e.target.files || []); e.target.value = '';
+    if (!files.length) return;
+    const root = (files[0].webkitRelativePath || '').split('/')[0] || 'Pasta';
+    addFolder(files.map((f) => ({ file: f, rel: f.webkitRelativePath || f.name })), root);
+  });
+  $('zipPickBtn').addEventListener('click', () => $('zipFilesInput').click());
+  $('zipFilesInput').addEventListener('change', (e) => {
+    const files = Array.from(e.target.files || []); e.target.value = '';
+    if (files.length) addFolder(files.map((f) => ({ file: f, rel: f.name })), 'Vídeos selecionados');
+  });
+  // O Safari do iPhone/iPad não deixa escolher pastas: lá o caminho é escolher vários vídeos.
+  const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (isIOS) { $('folderBtn').hidden = true; $('zipPickBtn').classList.replace('link-btn', 'btn'); $('zipPickBtn').classList.add('primary'); }
 
   const dz = $('dropzone');
   ['dragenter', 'dragover'].forEach((ev) => document.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add('drag'); }));
   ['dragleave', 'drop'].forEach((ev) => document.addEventListener(ev, (e) => { e.preventDefault(); if (ev === 'drop' || e.target === dz) dz.classList.remove('drag'); }));
-  document.addEventListener('drop', (e) => { if (e.dataTransfer) addFiles(e.dataTransfer.files); });
+  document.addEventListener('drop', async (e) => {
+    const dt = e.dataTransfer; if (!dt) return;
+    const droppedFiles = Array.from(dt.files || []); // capturar antes de qualquer await
+    const entries = Array.from(dt.items || []).map((i) => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
+    const dirs = entries.filter((en) => en.isDirectory);
+    if (dirs.length) {
+      // pasta arrastada: modo ZIP (uma por pasta)
+      for (const d of dirs) { const out = []; await readEntry(d, out); addFolder(out, d.name); }
+      const loose = entries.filter((en) => en.isFile).length;
+      if (loose) addFiles(droppedFiles.filter((f) => isVideo(f)));
+    } else addFiles(droppedFiles);
+  });
 })();
