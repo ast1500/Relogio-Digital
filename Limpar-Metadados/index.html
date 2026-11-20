@@ -33,6 +33,11 @@
       <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 8-4 4 4 4M16 8l4 4-4 4"/></symbol>
       <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="7.5" r="1.5"/></symbol>
       <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+      <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+      <symbol id="i-facebook" viewBox="0 0 24 24"><path d="M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8z"/></symbol>
+      <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+      <symbol id="i-text" viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h7"/></symbol>
+      <symbol id="i-sheet" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/></symbol>
       <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
       <symbol id="i-zip" viewBox="0 0 24 24"><path d="M6 3h9l5 5v13H6z"/><path d="M14 3v6h6M11 7h1M11 10h1M11 13h1M10 16h3v3h-3z"/></symbol>
     </defs>
@@ -103,6 +108,7 @@
         <h2 class="section-title" id="filesTitle">Seus vídeos</h2>
         <div class="row">
           <button class="btn green" id="cleanAll" type="button"><svg class="ic sm"><use href="#i-bolt"/></svg> Limpar todos</button>
+          <button class="btn" id="scheduleSingles" type="button"><svg class="ic sm"><use href="#i-calendar"/></svg> Agendar no Facebook</button>
           <button class="btn" id="clearList" type="button">Limpar lista</button>
         </div>
       </div>
@@ -139,16 +145,100 @@
       </div>
     </section>
 
+    <!-- Agendar no Facebook -->
+    <section id="scheduler" class="sched" hidden>
+      <div class="sched-head">
+        <button class="sq-btn" id="schedBack" type="button" aria-label="Voltar"><svg class="ic"><use href="#i-back"/></svg></button>
+        <div>
+          <h2 class="section-title">Agendar no Facebook</h2>
+          <span class="sub" id="schedSub"></span>
+        </div>
+      </div>
+
+      <div class="folder" id="schedConnect" style="--tab: var(--purple)"></div>
+
+      <details class="folder sched-tools" id="schedTools" style="--tab: var(--yellow)" open>
+        <summary>
+          <span class="tile" style="--tile: var(--yellow)"><svg class="ic"><use href="#i-text"/></svg></span>
+          <span class="sum-text"><b>2. Preencher em massa</b><small>legenda · hashtags · datas · tipo · planilha</small></span>
+        </summary>
+        <p class="sub scope" id="schedScope"></p>
+
+        <div class="tool">
+          <h4>Legenda modelo</h4>
+          <textarea id="tTemplate" rows="2" placeholder="Ex.: Parte {n} da viagem ✈️"></textarea>
+          <input type="text" id="tTitle" placeholder="Título modelo (opcional). Ex.: Viagem #{n}">
+          <p class="sub">Variáveis: <code>{n}</code> número · <code>{total}</code> · <code>{nome}</code> nome do arquivo · <code>{data}</code> · <code>{hora}</code></p>
+          <button class="btn small" id="tApplyCaption" type="button">Aplicar legenda</button>
+        </div>
+
+        <div class="tool">
+          <h4>Hashtags</h4>
+          <input type="text" id="tTags" placeholder="#viagem #praia #ferias">
+          <div class="tagsets" id="tSets"></div>
+          <div class="row">
+            <select id="tTagMode" aria-label="Como aplicar"><option value="replace">Substituir as hashtags</option><option value="add">Somar às que já existem</option></select>
+            <button class="btn small" id="tApplyTags" type="button">Aplicar hashtags</button>
+          </div>
+          <div class="row">
+            <input type="text" id="tSetName" placeholder="Nome do conjunto (ex.: Viagem)">
+            <button class="btn small" id="tSaveSet" type="button">Salvar conjunto</button>
+          </div>
+        </div>
+
+        <div class="tool">
+          <h4>Distribuir datas</h4>
+          <div class="row">
+            <label class="field grow"><span>Começar em</span><input type="date" id="tStart"></label>
+            <label class="field grow"><span>Horários por dia</span><input type="text" id="tTimes" placeholder="12:00, 19:00"></label>
+          </div>
+          <div class="field"><span>Dias da semana</span><div class="days" id="tDays"></div></div>
+          <p class="sub" id="tTz"></p>
+          <button class="btn small" id="tApplyDates" type="button">Distribuir datas</button>
+        </div>
+
+        <div class="tool">
+          <h4>Tipo de publicação</h4>
+          <div class="row">
+            <select id="tKind" aria-label="Tipo"><option value="auto">Automático: Reel se for vertical e curto</option><option value="video">Todos como vídeo</option><option value="reel">Todos como Reel</option></select>
+            <button class="btn small" id="tApplyKind" type="button">Aplicar tipo</button>
+          </div>
+        </div>
+
+        <div class="tool">
+          <h4>Planilha (Excel / Google Planilhas)</h4>
+          <p class="sub">Colunas: <code>arquivo; tipo; titulo; legenda; hashtags; data; hora</code>. Baixe a planilha da fila, preencha e importe de volta.</p>
+          <input type="file" id="tCsvFile" accept=".csv,text/csv" hidden>
+          <div class="row">
+            <button class="btn small" id="tCsvExport" type="button"><svg class="ic sm"><use href="#i-download"/></svg> Baixar planilha</button>
+            <button class="btn small" id="tCsvImport" type="button"><svg class="ic sm"><use href="#i-sheet"/></svg> Importar planilha</button>
+          </div>
+        </div>
+      </details>
+
+      <div class="sched-bar">
+        <h3>3. Revisar cada vídeo</h3>
+        <label class="check"><input type="checkbox" id="schedAll"> <span>Selecionar todos</span></label>
+      </div>
+      <div id="schedRows" class="sched-rows"></div>
+
+      <div class="folder" id="schedSend" style="--tab: var(--green)"></div>
+    </section>
+
     <footer class="app-foot">
-      Vídeo Limpo <b>v2.1.2</b> · código aberto (MIT) ·
+      Vídeo Limpo <b>v2.2.0</b> · código aberto (MIT) ·
       <a href="https://github.com/ast1500/Relogio-Digital" rel="noopener">GitHub</a>
     </footer>
   </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
+  <script src="config.js"></script>
   <script src="metadata.js"></script>
   <script src="zip.js"></script>
+  <script src="schedule.js"></script>
+  <script src="facebook.js"></script>
+  <script src="scheduler.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

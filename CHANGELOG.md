@@ -3,6 +3,22 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [2.2.0] - 2026-11-20
+
+### Adicionado
+- **Agendar no Facebook** (fase 1): depois de limpar uma pasta ou vídeos soltos, agende tudo na sua Página do Facebook.
+  - Conexão com "Entrar com Facebook"; o SDK da Meta só é carregado quando você toca em Entrar.
+  - **Vídeos e Reels**: Reel automático para vídeos verticais de até 90 s, com troca manual por vídeo.
+  - **Preencher em massa**: legenda e título modelo (`{n}`, `{total}`, `{nome}`, `{data}`, `{hora}`), hashtags
+    (substituir ou somar) com **conjuntos salvos**, **distribuir datas** (horários por dia e dias da semana) e tipo.
+  - **Planilha CSV** (Excel / Google Planilhas): baixar a fila, preencher e importar de volta.
+  - Validações antes do envio: janela de 10 min a 6 meses (vídeo) ou 29 dias (Reel), Reel vertical e curto,
+    horários repetidos, legenda vazia, excesso de hashtags.
+  - Envio em fila, em partes, com progresso, "tentar de novo" por vídeo e cancelamento. Só sobem vídeos já limpos.
+  - **Modo simulação** para testar tudo sem conta.
+- `config.js` para o App ID público do Facebook (também dá para informar na tela).
+- 31 testes no total (regras de agendamento e chamadas à Graph API com servidor falso).
+
 ## [2.1.2] - 2026-11-20
 
 ### Alterado
@@ -81,6 +97,7 @@ Primeira versão, como **Editor Limpo** (editor de vídeo com limpeza de metadad
 - Publicação automática no GitHub Pages e criação de Release a cada tag `v*`.
 - Licença MIT.
 
+[2.2.0]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.2.0
 [2.1.2]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.1.2
 [2.1.1]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.1.1
 [2.1.0]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.1.0

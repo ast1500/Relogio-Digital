@@ -22,6 +22,8 @@
     const t = $('toast'); t.textContent = msg; t.className = 'toast' + (isError ? ' error' : ''); t.hidden = false;
     clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, isError ? 7000 : 4000);
   }
+  window.VideoLimpoToast = toast;
+  window.VideoLimpoRefresh = () => renderAll();
   let lastDownload = 0;
   function download(blob, name) {
     // espaça downloads seguidos para o navegador não bloquear
@@ -194,6 +196,7 @@
     try {
       const { blob } = await VideoMeta.clean(it.file);
       const after = await VideoMeta.analyze(blob);
+      it.out = { blob, ext: extOf(it.file) };
       it.remaining = after.findings.length; it.status = 'done';
       download(blob, outputName(it.file, extOf(it.file)));
     } catch (e) { it.status = 'error'; it.error = 'Erro ao limpar: ' + e.message; }
@@ -347,9 +350,11 @@
       actions = '<div class="progress"><div style="width:' + Math.round(g.progress * 100) + '%"></div></div><span class="sub">Montando o ZIP… ' + Math.round(g.progress * 100) + '%</span>';
     } else if (g.status === 'done') {
       actions = '<p class="g-done">✓ ZIP pronto: ' + g.zipCount + ' vídeo(s) limpo(s), ' + fmtSize(g.zip.size) + (g.skipped ? ' · ' + g.skipped + ' fora do ZIP' : '') + '</p>' +
-        '<button class="btn" data-gact="download" type="button"><svg class="ic sm"><use href="#i-download"/></svg> Baixar o ZIP de novo</button>';
+        '<button class="btn" data-gact="download" type="button"><svg class="ic sm"><use href="#i-download"/></svg> Baixar o ZIP de novo</button>' +
+        '<button class="btn primary" data-gact="schedule" type="button"><svg class="ic sm"><use href="#i-calendar"/></svg> Agendar no Facebook</button>';
     } else {
-      actions = '<button class="btn green" data-gact="clean" type="button"' + (analyzing ? ' disabled' : '') + '><svg class="ic sm"><use href="#i-bolt"/></svg> Limpar tudo e baixar ZIP</button>';
+      actions = '<button class="btn green" data-gact="clean" type="button"' + (analyzing ? ' disabled' : '') + '><svg class="ic sm"><use href="#i-bolt"/></svg> Limpar tudo e baixar ZIP</button>' +
+        '<button class="btn" data-gact="schedule" type="button"' + (analyzing ? ' disabled' : '') + '><svg class="ic sm"><use href="#i-calendar"/></svg> Agendar no Facebook</button>';
     }
 
     return '<article class="folder gcard" data-gid="' + g.id + '" style="--tab: var(--purple)">' +
@@ -447,6 +452,7 @@
     if (act === 'clean') cleanGroup(g);
     else if (act === 'cancel') g.cancel = true;
     else if (act === 'download') download(g.zip, g.zipName);
+    else if (act === 'schedule') openScheduler(g.name, groupItems(g));
     else if (act === 'remove') {
       for (let i = items.length - 1; i >= 0; i--) if (items[i].group === g.id) items.splice(i, 1);
       groups.splice(groups.indexOf(g), 1); renderAll();
@@ -473,6 +479,35 @@
     });
   }
 
+  // ---------- agendar no Facebook ----------
+
+  /** Entrega ao agendador só vídeos que dá para enviar limpos (limpa na hora, se ainda não estiverem). */
+  function openScheduler(title, list) {
+    if (!window.Scheduler) return toast('O agendamento não carregou. Recarregue a página.', true);
+    const usable = [], excluded = [];
+    for (const it of list) {
+      const ok = it.result && it.status !== 'error' && (it.out || it.result.cleanable);
+      (ok ? usable : excluded).push(it);
+    }
+    if (!usable.length) return toast('Nenhum vídeo pronto para agendar (formato não suportado ou ainda analisando).', true);
+    Scheduler.open({
+      title,
+      excluded,
+      entries: usable.map((it) => ({
+        name: it.rel ? it.rel.split('/').pop() : it.file.name,
+        file: it.file,
+        warn: needsDeep(it) && !(it.out && it.mode === 'deep') ? 'Tem dados (como trilha de GPS) que só a limpeza profunda remove.' : '',
+        async getBlob() {
+          if (it.out) return it.out.blob;
+          const { blob } = await VideoMeta.clean(it.file);
+          const after = await VideoMeta.analyze(blob);
+          it.out = { blob, ext: extOf(it.file) }; it.remaining = after.findings.length; it.status = 'done'; it.mode = 'quick';
+          return blob;
+        },
+      })),
+    });
+  }
+
   // ---------- ações ----------
 
   $('fileList').addEventListener('click', (e) => {
@@ -494,6 +529,7 @@
     const left = todo.filter((it) => it.status === 'done' && needsDeep(it)).length;
     toast(todo.length + ' vídeo(s) processado(s).' + (left ? ' ' + left + ' ainda pode(m) usar a limpeza profunda.' : ''));
   });
+  $('scheduleSingles').addEventListener('click', () => openScheduler('Vídeos', singles()));
   $('clearList').addEventListener('click', () => {
     if (singles().some((it) => it.status === 'cleaning')) return toast('Espere terminar a limpeza em andamento.', true);
     for (let i = items.length - 1; i >= 0; i--) if (!items[i].group) items.splice(i, 1);
