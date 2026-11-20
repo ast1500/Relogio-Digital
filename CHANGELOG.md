@@ -3,6 +3,12 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [2.1.1] - 2026-11-20
+
+### Alterado
+- **Importar pasta** volta a ser o botão principal também no iPhone/iPad (o Safari abre pastas desde o iOS 18.4).
+  A seleção de vários vídeos fica como alternativa para aparelhos mais antigos.
+
 ## [2.1.0] - 2026-11-20
 
 ### Adicionado
@@ -11,7 +17,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
   - Subpastas são mantidas dentro do .zip (com nomes originais) ou os nomes viram aleatórios.
   - Arquivos que não são vídeo, vazios ou ocultos (como `._arquivo` do macOS) são ignorados.
   - Opção de usar a limpeza profunda nos vídeos que a rápida não alcança.
-  - No iPhone/iPad, onde o Safari não permite escolher pastas, o mesmo modo funciona escolhendo vários vídeos.
+  - Alternativa de escolher vários vídeos para o mesmo .zip.
 - Gerador de .zip próprio (`zip.js`), sem bibliotecas: sem compressão, sem copiar os vídeos na memória,
   ZIP64 para mais de 4 GB e data fixa (1980-01-01) para o .zip não revelar quando foi feito.
 - Testes do .zip (15 testes no total).
@@ -67,6 +73,7 @@ Primeira versão, como **Editor Limpo** (editor de vídeo com limpeza de metadad
 - Publicação automática no GitHub Pages e criação de Release a cada tag `v*`.
 - Licença MIT.
 
+[2.1.1]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.1.1
 [2.1.0]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.1.0
 [2.0.0]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.0.0
 [1.0.0]: https://github.com/ast1500/Relogio-Digital/releases/tag/v1.0.0

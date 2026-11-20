@@ -437,7 +437,7 @@
     g.zipName = useRandomNames() ? 'videos-limpos-' + randomHex() + '.zip' : g.name.replace(/[\\/:*?"<>|]+/g, '_') + '-limpo.zip';
     g.status = 'done'; renderGroup(g, true);
     download(g.zip, g.zipName);
-    toast('ZIP pronto com ' + entries.length + ' vídeo(s) limpo(s).' + (g.skipped ? ' ' + g.skipped + ' ficaram de fora (veja a lista).' : ''));
+    toast('ZIP pronto com ' + entries.length + (entries.length === 1 ? ' vídeo limpo.' : ' vídeos limpos.') + (g.skipped ? ' ' + g.skipped + (g.skipped === 1 ? ' ficou' : ' ficaram') + ' de fora (veja a lista).' : ''));
   }
 
   $('groupList').addEventListener('click', (e) => {
@@ -516,9 +516,8 @@
     const files = Array.from(e.target.files || []); e.target.value = '';
     if (files.length) addFolder(files.map((f) => ({ file: f, rel: f.name })), 'Vídeos selecionados');
   });
-  // O Safari do iPhone/iPad não deixa escolher pastas: lá o caminho é escolher vários vídeos.
-  const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  if (isIOS) { $('folderBtn').hidden = true; $('zipPickBtn').classList.replace('link-btn', 'btn'); $('zipPickBtn').classList.add('primary'); }
+  // "Importar pasta" funciona em todos os navegadores atuais, inclusive no iPhone/iPad (Safari 18.4+).
+  // A seleção de vários vídeos fica como alternativa para aparelhos mais antigos.
 
   const dz = $('dropzone');
   ['dragenter', 'dragover'].forEach((ev) => document.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add('drag'); }));
