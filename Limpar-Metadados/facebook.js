@@ -78,7 +78,7 @@
   /** Carrega o SDK oficial só quando a pessoa clica em "Entrar com Facebook" (e reconfigura se o App ID mudar). */
   async function loadSdk(appId) {
     await loadSdkScript();
-    if (initedAppId !== appId) { root.FB.init({ appId, version: GRAPH_VERSION, cookie: false, xfbml: false }); initedAppId = appId; }
+    if (initedAppId !== appId) { root.FB.init({ appId, version: GRAPH_VERSION, cookie: true, xfbml: false }); initedAppId = appId; } // cookie: lembra a sessão neste site
     return root.FB;
   }
   function loadSdkScript() {
@@ -108,19 +108,51 @@
       });
     }
 
+    /**
+     * Sessão que a pessoa já autorizou antes (sem abrir janela nenhuma).
+     * Importante no celular: ao abrir a janela de novo para um app já autorizado, o Login para Empresas pode cair num
+     * fluxo de revisão que a Meta não permite no site móvel ("Este fluxo não é compatível com dispositivos móveis").
+     */
+    function existingSession(FB) {
+      return new Promise((resolve) => {
+        const timer = setTimeout(() => resolve(null), 5000);
+        try {
+          FB.getLoginStatus((res) => {
+            clearTimeout(timer);
+            resolve(res && res.status === 'connected' && res.authResponse && res.authResponse.accessToken ? res.authResponse : null);
+          }, true);
+        } catch (e) { clearTimeout(timer); resolve(null); }
+      });
+    }
+
+    async function freshLogin(FB) {
+      try { return await login(FB, SCOPES); } catch (e) {
+        // Se a Meta não aceitar alguma permissão (ex.: publish_video foi descontinuada), tenta sem ela.
+        if (e.code === 'login') throw e;
+        return login(FB, SCOPES.filter((s) => s !== 'publish_video'));
+      }
+    }
+
     return {
       kind: 'real',
       plannerUrl: PLANNER_URL,
       async connect() {
         if (!appId) throw new FbError('Falta o App ID do Facebook.');
         const FB = await loadSdk(appId);
-        let auth;
-        try { auth = await login(FB, SCOPES); } catch (e) {
-          // Se a Meta não aceitar alguma permissão (ex.: publish_video foi descontinuada), tenta sem ela.
-          if (e.code === 'login') throw e;
-          auth = await login(FB, SCOPES.filter((s) => s !== 'publish_video'));
-        }
+        // 1º tenta a autorização que já existe; só abre a janela do Facebook se não houver.
+        let auth = await existingSession(FB);
+        const reused = !!auth;
+        if (!auth) auth = await freshLogin(FB);
         userToken = auth.accessToken;
+        try {
+          return await this._checkUser(configId);
+        } catch (e) {
+          // A sessão antiga não tem as permissões novas: aí sim pede de novo.
+          if (reused && e.code === 'perms') { userToken = (await freshLogin(FB)).accessToken; return this._checkUser(configId); }
+          throw e;
+        }
+      },
+      async _checkUser() {
         const me = await getJSON(GRAPH + '/me?fields=name&access_token=' + encodeURIComponent(userToken));
         // Confere o que a pessoa realmente autorizou, para explicar o que falta em vez de falhar no envio.
         const perms = await getJSON(GRAPH + '/me/permissions?access_token=' + encodeURIComponent(userToken)).catch(() => null);
@@ -148,7 +180,9 @@
         return out;
       },
       upload(opts) { return opts.kind === 'reel' ? uploadReel(opts) : uploadVideo(opts); },
-      disconnect() { userToken = null; try { root.FB && root.FB.logout(() => {}); } catch (e) { /* já saiu */ } },
+      // "Sair" só esquece o token nesta aba: não desconecta você do Facebook nem desfaz a autorização,
+      // para a próxima conexão não precisar abrir a janela de login de novo.
+      disconnect() { userToken = null; },
     };
   }
 
