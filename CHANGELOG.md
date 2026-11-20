@@ -3,6 +3,11 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [2.2.4] - 2026-11-20
+
+### Alterado
+- Novo ID da configuração do Login do Facebook para Empresas (`1453577476228477`), com a permissão `pages_manage_posts`.
+
 ## [2.2.3] - 2026-11-20
 
 ### Alterado
@@ -117,6 +122,7 @@ Primeira versão, como **Editor Limpo** (editor de vídeo com limpeza de metadad
 - Publicação automática no GitHub Pages e criação de Release a cada tag `v*`.
 - Licença MIT.
 
+[2.2.4]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.2.4
 [2.2.3]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.2.3
 [2.2.2]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.2.2
 [2.2.1]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.2.1

@@ -7,5 +7,5 @@
 window.VIDEO_LIMPO_CONFIG = {
   facebookAppId: '1091447947204742',
   // ID da configuração do "Login do Facebook para Empresas" (Login do Facebook para Empresas → Configurações).
-  facebookConfigId: '1461230332798562',
+  facebookConfigId: '1453577476228477',
 };
