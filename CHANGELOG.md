@@ -3,6 +3,14 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [2.3.1] - 2026-11-20
+
+### Corrigido
+- No celular, entrar de novo com o Facebook podia parar em "Este fluxo não é compatível com dispositivos móveis"
+  (fluxo de revisão do Login para Empresas). Agora o site **reaproveita a autorização que você já deu** e só abre a
+  janela do Facebook se ela não existir ou se faltar alguma permissão.
+- "Sair" não desconecta mais você do Facebook nem desfaz a autorização (só esquece a sessão nesta aba).
+
 ## [2.3.0] - 2026-11-20
 
 ### Alterado
@@ -144,6 +152,7 @@ Primeira versão, como **Editor Limpo** (editor de vídeo com limpeza de metadad
 - Publicação automática no GitHub Pages e criação de Release a cada tag `v*`.
 - Licença MIT.
 
+[2.3.1]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.3.1
 [2.3.0]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.3.0
 [2.2.5]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.2.5
 [2.2.4]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.2.4

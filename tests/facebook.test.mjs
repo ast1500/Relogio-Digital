@@ -133,3 +133,38 @@ test('se faltar pages_manage_posts, explica o que fazer', async () => {
   fakeSdk(granted('pages_show_list'));
   await assert.rejects(FB.real('APP', 'C').connect(), (e) => e.code === 'perms' && /pages_manage_posts/.test(e.message) && /configuração do login/.test(e.message));
 });
+
+/** Variante do SDK falso com sessão já autorizada (FB.getLoginStatus) e permissões por token. */
+function fakeSdkWithSession({ session, permsByToken }) {
+  const calls = { login: 0, status: 0 };
+  globalThis.document = { head: { appendChild: () => setTimeout(() => globalThis.fbAsyncInit(), 0) }, createElement: () => ({}) };
+  globalThis.FB = {
+    init() {},
+    getLoginStatus(cb) { calls.status++; cb(session ? { status: 'connected', authResponse: { accessToken: session } } : { status: 'unknown' }); },
+    login(cb) { calls.login++; cb({ authResponse: { accessToken: 'NEW_TOKEN' } }); },
+  };
+  globalThis.fetch = async (url) => {
+    const token = new URL(url).searchParams.get('access_token');
+    const body = url.includes('/me/permissions') ? { data: granted(...(permsByToken[token] || [])) } : { name: 'Pessoa' };
+    return { ok: true, json: async () => body };
+  };
+  return calls;
+}
+
+test('reaproveita a autorização que já existe, sem abrir a janela do Facebook', async () => {
+  const calls = fakeSdkWithSession({ session: 'OLD_TOKEN', permsByToken: { OLD_TOKEN: ['pages_show_list', 'pages_manage_posts'] } });
+  assert.deepEqual(await FB.real('APP', 'CFG').connect(), { name: 'Pessoa' });
+  assert.equal(calls.login, 0, 'não deve abrir a janela (no celular ela pode cair num fluxo não suportado)');
+});
+
+test('se a autorização antiga não tem as permissões novas, abre a janela uma vez', async () => {
+  const calls = fakeSdkWithSession({ session: 'OLD_TOKEN', permsByToken: { OLD_TOKEN: ['pages_show_list'], NEW_TOKEN: ['pages_show_list', 'pages_manage_posts'] } });
+  assert.deepEqual(await FB.real('APP', 'CFG').connect(), { name: 'Pessoa' });
+  assert.equal(calls.login, 1);
+});
+
+test('sem autorização anterior, abre a janela de login', async () => {
+  const calls = fakeSdkWithSession({ session: null, permsByToken: { NEW_TOKEN: ['pages_show_list', 'pages_manage_posts'] } });
+  await FB.real('APP', 'CFG').connect();
+  assert.equal(calls.login, 1);
+});
