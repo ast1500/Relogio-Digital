@@ -3,6 +3,14 @@ name: Criar Release
 on:
   push:
     tags: ['v*']
+  # Também pode ser iniciado à mão (Actions → Criar Release → Run workflow):
+  # cria a tag na main e a Release de uma vez.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag da versão (ex.: v1.0.0)'
+        required: true
+        default: 'v1.0.0'
 
 permissions:
   contents: write
@@ -12,9 +20,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Definir a tag
+        env:
+          TAG_INPUT: ${{ inputs.tag || github.ref_name }}
+        run: |
+          [[ "$TAG_INPUT" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Tag inválida: $TAG_INPUT"; exit 1; }
+          echo "TAG=$TAG_INPUT" >> "$GITHUB_ENV"
       - name: Notas da versão a partir do CHANGELOG
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${TAG#v}"
           awk -v v="$VERSION" '
             $0 ~ "^## \\[" v "\\]" {on=1; next}
             on && /^## \[/ {exit}
@@ -28,12 +42,17 @@ jobs:
         run: |
           mkdir pacote
           cp -r Editor-de-Video LICENSE pacote/
-          (cd pacote && zip -r "../editor-limpo-${GITHUB_REF_NAME}.zip" .)
+          (cd pacote && zip -r "../editor-limpo-${TAG}.zip" .)
       - name: Publicar a Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" "editor-limpo-${GITHUB_REF_NAME}.zip" \
-            --title "Editor Limpo ${GITHUB_REF_NAME}" \
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "A Release $TAG já existe; nada a fazer."
+            exit 0
+          fi
+          # Sem a tag ainda (início manual), o gh cria a tag apontando para este commit.
+          gh release create "$TAG" "editor-limpo-${TAG}.zip" \
+            --title "Editor Limpo ${TAG}" \
             --notes-file notes.md \
-            --verify-tag
+            --target "$GITHUB_SHA"
