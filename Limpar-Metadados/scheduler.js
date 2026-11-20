@@ -1,7 +1,7 @@
 /*
- * scheduler.js — tela "Agendar no Facebook".
- * Recebe os vídeos do limpador (Scheduler.open) e cuida de: conexão com a Página, ferramentas em massa
- * (legenda modelo, hashtags, datas, tipo, planilha), fila editável, validação e envio agendado.
+ * scheduler.js — tela "Agendar no Facebook", organizada em etapas:
+ *   1. Conectar a Página  2. Legendas (lista para sortear)  3. Hashtags (lista para sortear)
+ *   4. Horários (passos de 10 minutos)  5. Revisar cada post (com 🎲 por post)  6. Agendar
  * Depende de: schedule.js (Agenda) e facebook.js (FacebookPages).
  */
 (function () {
@@ -10,8 +10,6 @@
   const $ = (id) => document.getElementById(id);
   const A = window.Agenda;
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const WEEK = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
-  const WEEK_FULL = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
 
   // ---------- preferências (só neste navegador) ----------
   const store = {
@@ -19,21 +17,39 @@
     set(k, v) { try { localStorage.setItem('vl-agenda-' + k, JSON.stringify(v)); } catch (e) { /* sem armazenamento */ } },
   };
   // Os números do config.js têm prioridade; o que for digitado na tela só vale se o site não tiver um configurado.
-  const configAppId = () => ((window.VIDEO_LIMPO_CONFIG || {}).facebookAppId || '') || store.get('appId', '');
-  const configLoginId = () => ((window.VIDEO_LIMPO_CONFIG || {}).facebookConfigId || '') || store.get('configId', '');
-  const builtInIds = () => !!(window.VIDEO_LIMPO_CONFIG || {}).facebookAppId;
+  const cfg = () => window.VIDEO_LIMPO_CONFIG || {};
+  const configAppId = () => cfg().facebookAppId || store.get('appId', '');
+  const configLoginId = () => cfg().facebookConfigId || store.get('configId', '');
+  const builtInIds = () => !!cfg().facebookAppId;
 
   const S = {
     open: false, title: '', rows: [], hidden: [],
     engine: null, user: null, pages: [], pageId: null, connecting: false, connectError: '',
-    sending: false, controller: null, sentAt: null,
+    sending: false, controller: null, sendTotal: 0, sendIndex: 0,
   };
   let nextRow = 1;
 
-  function fmtSize(b) { const u = ['B', 'KB', 'MB', 'GB']; let i = 0; while (b >= 1024 && i < 3) { b /= 1024; i++; } return b.toFixed(i ? 1 : 0).replace('.', ',') + ' ' + u[i]; }
-  function fmtDur(s) { if (!s || !isFinite(s)) return ''; s = Math.round(s); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
-  function fmtWhen(d) { return d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' }) + ' às ' + A.fmtTime(d); }
+  const fmtSize = (b) => { const u = ['B', 'KB', 'MB', 'GB']; let i = 0; while (b >= 1024 && i < 3) { b /= 1024; i++; } return b.toFixed(i ? 1 : 0).replace('.', ',') + ' ' + u[i]; };
+  const fmtDur = (s) => { if (!s || !isFinite(s)) return ''; s = Math.round(s); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  const fmtWhen = (d) => d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' }) + ' às ' + A.fmtTime(d);
   const toast = (m, e) => window.VideoLimpoToast && window.VideoLimpoToast(m, e);
+
+  // ---------- listas (legendas e hashtags) ----------
+  const captionPool = () => A.parseCaptionPool($('capPool').value);
+  const fillCaption = (text, r) => A.applyTemplate(text, { n: r.n, total: S.rows.length, nome: r.name, when: r.when });
+  const tagSettings = () => ({ pool: $('tagPool').value, per: +$('tagPer').value, fixed: $('tagFixed').value });
+
+  function updatePoolInfo() {
+    const caps = captionPool().length;
+    $('capCount').textContent = caps ? caps + (caps === 1 ? ' legenda na lista' : ' legendas na lista') : 'Nenhuma legenda na lista';
+    const tags = A.normalizeHashtags($('tagPool').value).length;
+    const fixed = A.normalizeHashtags($('tagFixed').value).length;
+    $('tagCount').textContent = (tags ? tags + ' hashtag(s) na lista' : 'Nenhuma hashtag na lista') + (fixed ? ' · ' + fixed + ' fixa(s)' : '');
+  }
+  function savePools() {
+    store.set('capPool', $('capPool').value); store.set('tagPool', $('tagPool').value);
+    store.set('tagPer', $('tagPer').value); store.set('tagFixed', $('tagFixed').value);
+  }
 
   // ---------- abrir / fechar ----------
 
@@ -53,6 +69,9 @@
     restore = HIDE_WHILE_OPEN.map((id) => [id, $(id).hidden]);
     HIDE_WHILE_OPEN.forEach((id) => { $(id).hidden = true; });
     $('scheduler').hidden = false;
+    initForm();
+    // Já sugere os horários (a partir do próximo horário livre, a cada X minutos)
+    applyDates(true);
     renderAll();
     window.scrollTo({ top: 0 });
     loadMetaQueue();
@@ -98,7 +117,7 @@
     });
   }
 
-  // ---------- conexão ----------
+  // ---------- 1. conexão ----------
 
   async function connect(useMock) {
     S.connecting = true; S.connectError = ''; renderConnect();
@@ -126,92 +145,94 @@
   function renderConnect() {
     const el = $('schedConnect');
     const appId = configAppId();
-    let html = '<div class="fc-top"><span class="tile" style="--tile: var(--purple)"><svg class="ic"><use href="#i-link"/></svg></span>' +
-      '<div class="fc-info"><h3>1. Conectar a Página</h3>';
+    let html = '<div class="step-head"><span class="tile" style="--tile: var(--purple)"><svg class="ic"><use href="#i-link"/></svg></span><div><h3>1. Conectar a Página</h3>';
     if (S.connecting) {
       html += '<span class="sub">Conectando…</span></div></div>';
     } else if (S.user) {
       const sim = S.engine.kind === 'mock';
       html += '<span class="sub">Conectado como <b>' + esc(S.user.name) + '</b>' + (sim ? ' <span class="chip">simulação</span>' : '') + '</span></div>' +
-        '<button class="btn small" data-sact="logout" type="button"' + (S.sending ? ' disabled' : '') + '>Sair</button></div>' +
+        '<button class="btn small push" data-sact="logout" type="button"' + (S.sending ? ' disabled' : '') + '>Sair</button></div>' +
         '<label class="field"><span>Publicar na Página</span><select id="schedPage"' + (S.sending ? ' disabled' : '') + '>' +
         S.pages.map((p) => '<option value="' + esc(p.id) + '"' + (p.id === S.pageId ? ' selected' : '') + '>' + esc(p.name) + '</option>').join('') + '</select></label>' +
-        (sim ? '<p class="fc-note">Modo simulação: nada é enviado de verdade. Serve para testar a tela. Para publicar, saia e entre com o Facebook.</p>' : '');
+        (sim ? '<p class="fc-note">Modo simulação: nada é enviado de verdade. Para publicar, toque em Sair e entre com o Facebook.</p>' : '');
     } else {
-      html += '<span class="sub">Os vídeos são publicados numa Página do Facebook da qual você é administrador(a).</span></div></div>' +
-        '<div class="fc-actions">' +
+      html += '<span class="sub">Escolha a Página do Facebook onde os vídeos serão publicados.</span></div></div>' +
+        '<div class="btn-row">' +
         '<button class="btn primary" data-sact="login" type="button"' + (appId ? '' : ' disabled') + '><svg class="ic sm"><use href="#i-facebook"/></svg> Entrar com Facebook</button>' +
-        '<button class="btn small" data-sact="mock" type="button">Testar no modo simulação</button></div>' +
-        (appId ? '' : '<p class="fc-note">Para entrar com o Facebook, falta configurar o <b>App ID</b> (veja abaixo). Enquanto isso, dá para testar tudo no modo simulação.</p>') +
-        '<details class="fc-details"' + (builtInIds() ? ' hidden' : '') + '><summary>Configurar App ID</summary><div class="appid">' +
-        '<p class="sub">Número público do app criado em developers.facebook.com (com o domínio <code>' + esc(location.hostname || 'ast1500.github.io') + '</code> autorizado). Fica salvo só neste navegador.</p>' +
-        '<label class="field"><span>ID do app</span><input type="text" inputmode="numeric" id="schedAppId" placeholder="Ex.: 123456789012345" value="' + esc(store.get('appId', '')) + '"></label>' +
-        '<label class="field"><span>ID da configuração <small class="sub">(do "Login do Facebook para Empresas")</small></span><input type="text" inputmode="numeric" id="schedConfigId" placeholder="Ex.: 987654321098765" value="' + esc(store.get('configId', '')) + '"></label>' +
+        '<button class="btn" data-sact="mock" type="button">Testar no modo simulação</button></div>' +
+        (appId ? '' : '<p class="fc-note">Falta configurar o <b>App ID</b> do Facebook (abaixo). Enquanto isso, dá para testar no modo simulação.</p>') +
+        '<details class="howto"' + (builtInIds() ? ' hidden' : '') + '><summary>Configurar App ID</summary><div class="appid">' +
+        '<label class="field"><span>ID do app</span><input type="text" inputmode="numeric" id="schedAppId" value="' + esc(store.get('appId', '')) + '"></label>' +
+        '<label class="field"><span>ID da configuração (Login para Empresas)</span><input type="text" inputmode="numeric" id="schedConfigId" value="' + esc(store.get('configId', '')) + '"></label>' +
         '<button class="btn small" data-sact="saveappid" type="button">Salvar</button></div></details>';
       if (S.connectError) html += '<p class="fc-note err">' + esc(S.connectError) + '</p>';
     }
-    html += '<p class="sub privacy">🔒 O login do Facebook só é carregado quando você toca em "Entrar". A limpeza continua 100% no seu aparelho; só os vídeos que você agendar são enviados, já limpos, para o Facebook.</p>';
+    html += '<p class="sub">🔒 O login do Facebook só é carregado quando você toca em "Entrar". Só os vídeos que você agendar são enviados, já limpos.</p>';
     el.innerHTML = html;
   }
 
-  // ---------- ferramentas em massa ----------
+  // ---------- 2–4. ações em massa ----------
 
-  const targets = () => { const sel = S.rows.filter((r) => r.selected && r.status !== 'scheduled'); return sel.length ? sel : S.rows.filter((r) => r.status !== 'scheduled'); };
+  const pending = () => S.rows.filter((r) => r.status !== 'scheduled');
+  const targets = () => { const sel = pending().filter((r) => r.selected); return sel.length ? sel : pending(); };
   function scopeLabel() {
-    const sel = S.rows.filter((r) => r.selected).length;
-    $('schedScope').textContent = sel ? 'As ações abaixo valem para os ' + sel + ' vídeo(s) selecionado(s).' : 'As ações abaixo valem para todos os ' + S.rows.length + ' vídeo(s) (ou selecione alguns na lista).';
+    const sel = S.rows.filter((r) => r.selected && r.status !== 'scheduled').length;
+    $('schedScope').innerHTML = sel
+      ? '👉 As ações dos passos 2 a 4 valem para os <b>' + sel + ' post(s) selecionado(s)</b> no passo 5.'
+      : '👉 As ações dos passos 2 a 4 valem para <b>todos os ' + pending().length + ' post(s)</b>. Para mudar só alguns, selecione-os no passo 5.';
   }
 
-  function applyCaption() {
-    const tpl = $('tTemplate').value, tTitle = $('tTitle').value;
-    store.set('template', tpl); store.set('titleTpl', tTitle);
+  function shuffleCaptions() {
+    const pool = captionPool();
+    if (!pool.length) return toast('Escreva as legendas na lista primeiro (uma por linha).', true);
+    const list = targets(); const picks = A.drawMany(pool, list.length);
+    list.forEach((r, i) => { r.caption = fillCaption(picks[i], r); });
+    savePools(); renderRows(); toast('Legendas sorteadas para ' + list.length + ' post(s).');
+  }
+  function orderCaptions() {
+    const pool = captionPool();
+    if (!pool.length) return toast('Escreva as legendas na lista primeiro (uma por linha).', true);
     const list = targets();
-    list.forEach((r, i) => {
-      const ctx = { n: i + 1, total: list.length, nome: r.name, when: r.when };
-      if (tpl.trim()) r.caption = A.applyTemplate(tpl, ctx);
-      if (tTitle.trim()) r.title = A.applyTemplate(tTitle, ctx);
-    });
-    renderRows(); toast('Legenda aplicada em ' + list.length + ' vídeo(s).');
+    list.forEach((r, i) => { r.caption = fillCaption(pool[i % pool.length], r); });
+    savePools(); renderRows(); toast('Legendas aplicadas na ordem da lista.');
   }
-  function applyTags() {
-    const tags = A.normalizeHashtags($('tTags').value);
-    const mode = $('tTagMode').value;
+  function shuffleTags() {
+    const t = tagSettings();
+    if (!A.normalizeHashtags(t.pool).length && !A.normalizeHashtags(t.fixed).length) return toast('Escreva as hashtags na lista primeiro.', true);
     const list = targets();
-    list.forEach((r) => { r.hashtags = (mode === 'add' ? A.normalizeHashtags(r.hashtags + ' ' + tags.join(' ')) : tags).join(' '); });
-    store.set('tags', $('tTags').value);
-    renderRows(); toast('Hashtags aplicadas em ' + list.length + ' vídeo(s).');
+    list.forEach((r) => { r.hashtags = A.pickHashtags(t.pool, t.per, t.fixed); });
+    savePools(); renderRows(); toast('Hashtags sorteadas para ' + list.length + ' post(s).');
   }
-  function saveTagSet() {
-    const tags = A.normalizeHashtags($('tTags').value);
-    const name = $('tSetName').value.trim();
-    if (!tags.length) return toast('Escreva as hashtags primeiro.', true);
-    if (!name) { $('tSetName').focus(); return toast('Dê um nome ao conjunto (ex.: Viagem).', true); }
-    const sets = store.get('sets', []).filter((s) => s.name.toLowerCase() !== name.toLowerCase());
-    sets.push({ name, tags: tags.join(' ') }); store.set('sets', sets);
-    $('tSetName').value = ''; renderSets(); toast('Conjunto "' + name + '" salvo.');
+  function clearTags() { targets().forEach((r) => { r.hashtags = ''; }); renderRows(); }
+
+  function firstSlot() {
+    const v = A.fromLocalInput($('tFirst').value);
+    const min = A.nextSlot();
+    return v && v >= new Date(Date.now() + A.MIN_LEAD_MIN * 60000) ? A.roundTo10(v) : min;
   }
-  function renderSets() {
-    const sets = store.get('sets', []);
-    $('tSets').innerHTML = sets.length ? sets.map((s, i) => '<span class="tagset"><button type="button" data-set="' + i + '" title="' + esc(s.tags) + '">' + esc(s.name) + '</button>' +
-      '<button type="button" class="x" data-delset="' + i + '" aria-label="Apagar conjunto">×</button></span>').join('') : '<span class="sub">Nenhum conjunto salvo ainda.</span>';
+  function applyDates(silent) {
+    const first = firstSlot(), minutes = +$('tInterval').value;
+    $('tFirst').value = A.toLocalInput(first);
+    store.set('interval', String(minutes));
+    const list = silent ? pending() : targets();
+    const dates = A.distributeInterval(list.length, first, minutes);
+    list.forEach((r, i) => { r.when = dates[i]; });
+    updateTimesInfo(dates);
+    if (!silent) { renderRows(); toast(list.length + ' horário(s) distribuídos.'); }
   }
-  function applyDates() {
-    const start = $('tStart').value ? new Date($('tStart').value + 'T00:00') : new Date();
-    const times = A.parseTimes($('tTimes').value);
-    const days = [...$('tDays').querySelectorAll('button.on')].map((b) => +b.dataset.d);
-    if (!times.length) return toast('Escreva pelo menos um horário, como 12:00.', true);
-    if (!days.length) return toast('Escolha pelo menos um dia da semana.', true);
-    store.set('times', $('tTimes').value); store.set('days', days);
-    const list = targets();
-    const dates = A.distribute(list.length, { start, times, weekdays: days });
-    list.forEach((r, i) => { r.when = dates[i] || null; });
-    renderRows();
-    if (dates.length) toast(list.length + ' vídeo(s) distribuídos de ' + A.fmtDate(dates[0]) + ' até ' + A.fmtDate(dates[dates.length - 1]) + '.');
+  function updateTimesInfo(dates) {
+    const all = (dates || S.rows.map((r) => r.when)).filter(Boolean).sort((a, b) => a - b);
+    $('timesInfo').textContent = all.length ? 'De ' + fmtWhen(all[0]) + ' até ' + fmtWhen(all[all.length - 1]) : 'Escolha o primeiro horário e o intervalo';
   }
   function applyKind() {
     const v = $('tKind').value;
     targets().forEach((r) => { r.kindAuto = v === 'auto'; r.kind = v === 'auto' ? A.autoKind(r.meta) : v; });
     renderRows();
+  }
+  function applyTitle() {
+    const tpl = $('tTitle').value; store.set('titleTpl', tpl);
+    targets().forEach((r) => { r.title = A.applyTemplate(tpl, { n: r.n, total: S.rows.length, nome: r.name, when: r.when }); });
+    toast(tpl.trim() ? 'Título aplicado.' : 'Títulos removidos.');
   }
 
   function importCsv(text) {
@@ -224,11 +245,11 @@
       if (ch.title !== undefined) r.title = ch.title;
       if (ch.caption !== undefined) r.caption = ch.caption;
       if (ch.hashtags !== undefined) r.hashtags = ch.hashtags;
-      if (ch.when) r.when = ch.when;
+      if (ch.when) r.when = A.roundTo10(ch.when);
       hit++;
     }
     renderRows();
-    toast(hit ? 'Planilha aplicada em ' + hit + ' vídeo(s).' + (changes.size > hit ? ' ' + (changes.size - hit) + ' linha(s) não bateram com nenhum arquivo.' : '') : 'Nenhuma linha da planilha bateu com os nomes dos arquivos.', !hit);
+    toast(hit ? 'Planilha aplicada em ' + hit + ' post(s).' : 'Nenhuma linha da planilha bateu com os nomes dos arquivos.', !hit);
   }
   function exportCsv() {
     const blob = new Blob([A.toCSV(S.rows)], { type: 'text/csv;charset=utf-8' });
@@ -236,7 +257,7 @@
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 30000);
   }
 
-  // ---------- fila ----------
+  // ---------- 5. revisar ----------
 
   function rowIssues(r) { return r.status === 'scheduled' ? [] : A.validate(r, new Date(), S.rows).concat(r.note ? [{ level: 'warn', msg: r.note }] : []); }
 
@@ -250,17 +271,21 @@
     else if (done) status = '<p class="srow-ok">✓ Agendado para ' + esc(fmtWhen(r.when)) + (r.result && r.result.url ? ' · <a href="' + esc(r.result.url) + '" target="_blank" rel="noopener">ver</a>' : '') + '</p>';
     else if (r.status === 'error') status = '<p class="fc-note err">' + esc(r.error) + '</p><button class="btn small" type="button" data-retry="' + r.id + '">Tentar de novo</button>';
     return '<article class="srow s-' + r.status + '" data-rid="' + r.id + '">' +
-      '<label class="srow-check" title="Selecionar"><input type="checkbox" data-f="selected"' + (r.selected ? ' checked' : '') + (done ? ' disabled' : '') + '></label>' +
-      '<div class="srow-thumb' + (r.kind === 'reel' ? ' reel' : '') + '">' + (r.thumb ? '<img alt="" src="' + r.thumb + '">' : '<svg class="ic"><use href="#i-film"/></svg>') + '</div>' +
+      '<div class="srow-side">' +
+        '<label class="srow-check" title="Selecionar"><input type="checkbox" data-f="selected"' + (r.selected ? ' checked' : '') + (done ? ' disabled' : '') + '></label>' +
+        '<div class="srow-thumb' + (r.kind === 'reel' ? ' reel' : '') + '">' + (r.thumb ? '<img alt="" src="' + r.thumb + '">' : '<svg class="ic"><use href="#i-film"/></svg>') + '</div>' +
+      '</div>' +
       '<div class="srow-main">' +
         '<div class="srow-top"><b class="srow-name" title="' + esc(r.name) + '">' + r.n + '. ' + esc(r.name) + '</b><span class="sub">' + meta + fmtSize(r.size) + '</span></div>' +
-        '<div class="srow-grid">' +
+        '<div class="srow-when">' +
           '<select data-f="kind"' + lock + ' aria-label="Tipo"><option value="video"' + (r.kind === 'video' ? ' selected' : '') + '>Vídeo</option><option value="reel"' + (r.kind === 'reel' ? ' selected' : '') + '>Reel</option></select>' +
-          '<input type="datetime-local" data-f="when" value="' + A.toLocalInput(r.when) + '"' + lock + ' aria-label="Data e hora">' +
-          '<input type="text" data-f="title" class="wide" placeholder="Título (opcional)" value="' + esc(r.title) + '"' + lock + '>' +
-          '<textarea data-f="caption" class="wide" rows="2" placeholder="Legenda"' + lock + '>' + esc(r.caption) + '</textarea>' +
-          '<div class="wide tagline"><input type="text" data-f="hashtags" placeholder="#hashtags" value="' + esc(r.hashtags) + '"' + lock + '><span class="tagcount' + (tags > A.HASHTAG_SOFT_LIMIT ? ' over' : '') + '">' + tags + '</span></div>' +
+          '<input type="datetime-local" step="600" data-f="when" value="' + A.toLocalInput(r.when) + '"' + lock + ' aria-label="Data e hora">' +
         '</div>' +
+        '<div class="with-dice"><textarea data-f="caption" rows="2" placeholder="Legenda"' + lock + '>' + esc(r.caption) + '</textarea>' +
+          '<button type="button" class="dice" data-dice="caption" title="Sortear outra legenda" aria-label="Sortear outra legenda"' + lock + '>🎲</button></div>' +
+        '<div class="with-dice"><input type="text" data-f="hashtags" placeholder="#hashtags" value="' + esc(r.hashtags) + '"' + lock + '>' +
+          '<span class="tagcount' + (tags > A.HASHTAG_SOFT_LIMIT ? ' over' : '') + '" title="Hashtags">' + tags + '</span>' +
+          '<button type="button" class="dice" data-dice="hashtags" title="Sortear outras hashtags" aria-label="Sortear outras hashtags"' + lock + '>🎲</button></div>' +
         '<ul class="srow-issues"></ul>' + status +
       '</div></article>';
   }
@@ -273,8 +298,8 @@
   }
   function renderRows() {
     $('schedRows').innerHTML = S.rows.map(rowHtml).join('');
-    renderIssues(); renderSend(); scopeLabel();
-    $('schedAll').checked = S.rows.length > 0 && S.rows.every((r) => r.selected || r.status === 'scheduled');
+    renderIssues(); renderSend(); scopeLabel(); updateTimesInfo();
+    $('schedAll').checked = S.rows.length > 0 && pending().length > 0 && pending().every((r) => r.selected);
   }
   function renderIssues() {
     for (const r of S.rows) {
@@ -284,7 +309,23 @@
     }
   }
 
-  // ---------- envio ----------
+  function rerollRow(r, what) {
+    if (what === 'caption') {
+      const pool = captionPool();
+      if (!pool.length) return toast('Adicione legendas na lista do passo 2.', true);
+      const currentRaw = pool.find((p) => fillCaption(p, r) === r.caption);
+      r.caption = fillCaption(A.drawOther(pool, currentRaw), r);
+    } else {
+      const t = tagSettings();
+      if (!A.normalizeHashtags(t.pool).length && !A.normalizeHashtags(t.fixed).length) return toast('Adicione hashtags na lista do passo 3.', true);
+      let next = A.pickHashtags(t.pool, t.per, t.fixed);
+      for (let i = 0; i < 5 && next === r.hashtags; i++) next = A.pickHashtags(t.pool, t.per, t.fixed);
+      r.hashtags = next;
+    }
+    renderRow(r); renderSend();
+  }
+
+  // ---------- 6. agendar ----------
 
   function readyRows() { return S.rows.filter((r) => r.status !== 'scheduled' && !rowIssues(r).some((i) => i.level === 'error')); }
 
@@ -294,22 +335,21 @@
     const scheduled = S.rows.filter((r) => r.status === 'scheduled').length;
     const errors = S.rows.filter((r) => r.status !== 'scheduled' && rowIssues(r).some((i) => i.level === 'error')).length;
     const ready = readyRows().length;
-    let html = '<div class="fc-top"><span class="tile" style="--tile: var(--green)"><svg class="ic"><use href="#i-calendar"/></svg></span><div class="fc-info"><h3>4. Agendar</h3>' +
+    let html = '<div class="step-head"><span class="tile" style="--tile: var(--green)"><svg class="ic"><use href="#i-calendar"/></svg></span><div><h3>6. Agendar</h3>' +
       '<div class="chips"><span class="chip ok">' + ready + ' pronto(s)</span>' + (errors ? '<span class="chip hot">' + errors + ' com problema</span>' : '') +
       (scheduled ? '<span class="chip">' + scheduled + ' de ' + total + ' agendado(s)</span>' : '') + '</div></div></div>';
     if (S.sending) {
       const doneNow = S.rows.filter((r) => r.status === 'scheduled').length;
-      html += '<div class="fc-actions"><div class="progress"><div style="width:' + Math.round(doneNow / Math.max(1, S.sendTotal) * 100) + '%"></div></div>' +
-        '<span class="sub">Enviando ' + Math.min(S.sendIndex + 1, S.sendTotal) + ' de ' + S.sendTotal + '. Mantenha esta aba aberta até terminar.</span>' +
-        '<button class="btn small" data-sact="cancel" type="button">Cancelar</button></div>';
+      html += '<div class="progress big"><div style="width:' + Math.round(doneNow / Math.max(1, S.sendTotal) * 100) + '%"></div></div>' +
+        '<p class="sub">Enviando ' + Math.min(S.sendIndex + 1, S.sendTotal) + ' de ' + S.sendTotal + '. Mantenha esta aba aberta até terminar.</p>' +
+        '<div class="btn-row"><button class="btn" data-sact="cancel" type="button">Cancelar envio</button></div>';
     } else {
-      const need = !S.user ? 'Conecte a Página (passo 1) para agendar.' : '';
-      html += '<div class="fc-actions"><button class="btn primary wide" data-sact="send" type="button"' + (!S.user || !ready ? ' disabled' : '') + '>' +
-        '<svg class="ic sm"><use href="#i-calendar"/></svg> Agendar ' + ready + ' vídeo(s)' + (currentPage() ? ' em ' + esc(currentPage().name) : '') + '</button></div>' +
-        (need ? '<p class="sub">' + need + '</p>' : '') +
+      html += '<button class="btn primary wide" data-sact="send" type="button"' + (!S.user || !ready ? ' disabled' : '') + '>' +
+        '<svg class="ic sm"><use href="#i-calendar"/></svg> Agendar ' + ready + ' post(s)' + (currentPage() ? ' em ' + esc(currentPage().name) : '') + '</button>' +
+        (!S.user ? '<p class="sub">Conecte a Página (passo 1) para agendar.</p>' : '') +
         (scheduled && S.engine && S.engine.plannerUrl ? '<p class="sub">Veja e edite os agendamentos no <a href="' + S.engine.plannerUrl + '" target="_blank" rel="noopener">Meta Business Suite → Planejador</a>.</p>' : '') +
         (scheduled && S.engine && S.engine.kind === 'mock' ? '<p class="sub">Simulação: nada foi enviado de verdade.</p>' : '') +
-        '<p class="sub">Depois que um vídeo aparece como "Agendado", ele já está guardado no Facebook: pode fechar a página que a publicação acontece na hora marcada.</p>';
+        '<p class="sub">Quando um post aparece como "Agendado", ele já está guardado no Facebook: pode fechar a página.</p>';
     }
     el.innerHTML = html;
   }
@@ -324,7 +364,7 @@
         signal: S.controller.signal,
         onProgress: (p) => { r.progress = p; if (Date.now() - last > 250) { last = Date.now(); renderRow(r); } },
       });
-      r.status = 'scheduled';
+      r.status = 'scheduled'; r.selected = false;
     } catch (e) {
       r.status = e.code === 'abort' ? 'pending' : 'error';
       r.error = e.message || String(e);
@@ -341,33 +381,34 @@
     renderRows(); renderConnect();
     try {
       for (let i = 0; i < queue.length && !S.controller.signal.aborted; i++) { S.sendIndex = i; renderSend(); await sendOne(queue[i], page); }
-    } catch (e) {
-      toast(e.message, true); disconnect();
-    }
+    } catch (e) { toast(e.message, true); disconnect(); }
     const cancelled = S.controller.signal.aborted;
     S.sending = false; S.controller = null;
     renderRows(); renderConnect();
     const ok = queue.filter((r) => r.status === 'scheduled').length, bad = queue.filter((r) => r.status === 'error').length;
-    toast(cancelled ? 'Envio cancelado. ' + ok + ' vídeo(s) já tinham sido agendados.' : ok + ' vídeo(s) agendado(s).' + (bad ? ' ' + bad + ' com erro: veja na lista.' : ''), bad > 0 && !ok);
+    toast(cancelled ? 'Envio cancelado. ' + ok + ' post(s) já tinham sido agendados.' : ok + ' post(s) agendado(s).' + (bad ? ' ' + bad + ' com erro: veja na lista.' : ''), bad > 0 && !ok);
   }
 
   window.addEventListener('beforeunload', (e) => { if (S.sending) { e.preventDefault(); e.returnValue = ''; } });
 
   // ---------- montar a tela ----------
 
+  function initForm() {
+    $('capPool').value = store.get('capPool', '');
+    $('tagPool').value = store.get('tagPool', '');
+    $('tagPer').value = store.get('tagPer', '3');
+    $('tagFixed').value = store.get('tagFixed', '');
+    $('tInterval').value = store.get('interval', '10');
+    $('tTitle').value = store.get('titleTpl', '');
+    $('tFirst').value = A.toLocalInput(A.nextSlot());
+    $('tFirst').min = A.toLocalInput(A.nextSlot(new Date(Date.now() - 20 * 60000)));
+    let tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { /* sem fuso */ }
+    $('tTz').textContent = 'Horários sempre em passos de 10 minutos' + (tz ? ', no fuso deste aparelho (' + tz + ').' : '.');
+    updatePoolInfo();
+  }
   function renderAll() {
     $('schedSub').textContent = S.rows.length + ' vídeo(s) de "' + S.title + '"' + (S.hidden.length ? ' · ' + S.hidden.length + ' não entram (formato não suportado ou erro)' : '');
-    $('tTemplate').value = store.get('template', '');
-    $('tTitle').value = store.get('titleTpl', '');
-    $('tTags').value = store.get('tags', '');
-    $('tTimes').value = store.get('times', '12:00, 19:00');
-    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-    $('tStart').value = A.toLocalInput(tomorrow).slice(0, 10);
-    const days = store.get('days', [0, 1, 2, 3, 4, 5, 6]);
-    $('tDays').innerHTML = WEEK.map((l, d) => '<button type="button" data-d="' + d + '" title="' + WEEK_FULL[d] + '" class="' + (days.includes(d) ? 'on' : '') + '">' + l + '</button>').join('');
-    let tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { /* sem fuso */ }
-    $('tTz').textContent = tz ? 'Horários no fuso deste aparelho (' + tz + ').' : '';
-    renderSets(); renderConnect(); renderRows();
+    renderConnect(); renderRows();
   }
 
   function bind() {
@@ -382,43 +423,50 @@
         else if (act === 'send') sendAll();
         else if (act === 'cancel' && S.controller) S.controller.abort();
         else if (act === 'saveappid') {
-          const v = $('schedAppId').value.replace(/\D/g, '');
-          const c = $('schedConfigId').value.replace(/\D/g, '');
-          store.set('appId', v); store.set('configId', c); renderConnect();
-          toast(v ? 'Salvo neste navegador.' + (c ? '' : ' Se o app usa "Login do Facebook para Empresas", preencha também o ID da configuração.') : 'App ID removido.');
+          store.set('appId', $('schedAppId').value.replace(/\D/g, ''));
+          store.set('configId', $('schedConfigId').value.replace(/\D/g, ''));
+          renderConnect(); toast('Salvo neste navegador.');
         }
         return;
       }
       const retry = e.target.closest('[data-retry]');
-      if (retry) { const r = S.rows.find((x) => x.id === +retry.dataset.retry); if (r) sendAll(r); }
-      const set = e.target.closest('[data-set]');
-      if (set) { const s = store.get('sets', [])[+set.dataset.set]; if (s) { $('tTags').value = s.tags; } }
-      const del = e.target.closest('[data-delset]');
-      if (del) { const sets = store.get('sets', []); sets.splice(+del.dataset.delset, 1); store.set('sets', sets); renderSets(); }
-      const day = e.target.closest('#tDays button');
-      if (day) day.classList.toggle('on');
+      if (retry) { const r = S.rows.find((x) => x.id === +retry.dataset.retry); if (r) sendAll(r); return; }
+      const dice = e.target.closest('[data-dice]');
+      if (dice) { const r = S.rows.find((x) => x.id === +dice.closest('.srow').dataset.rid); if (r) rerollRow(r, dice.dataset.dice); return; }
+      const step = e.target.closest('.steps a');
+      if (step) { e.preventDefault(); const t = document.querySelector(step.getAttribute('href')); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
     });
     $('scheduler').addEventListener('change', (e) => {
       if (e.target.id === 'schedPage') { S.pageId = e.target.value; store.set('pageId', S.pageId); renderSend(); }
     });
-    $('tApplyCaption').addEventListener('click', applyCaption);
-    $('tApplyTags').addEventListener('click', applyTags);
-    $('tSaveSet').addEventListener('click', saveTagSet);
-    $('tApplyDates').addEventListener('click', applyDates);
+    $('capShuffle').addEventListener('click', shuffleCaptions);
+    $('capOrder').addEventListener('click', orderCaptions);
+    $('tagShuffle').addEventListener('click', shuffleTags);
+    $('tagClear').addEventListener('click', clearTags);
+    ['capPool', 'tagPool', 'tagFixed'].forEach((id) => $(id).addEventListener('input', () => { updatePoolInfo(); savePools(); }));
+    $('tagPer').addEventListener('change', savePools);
+    $('tFirst').addEventListener('change', () => { const d = A.fromLocalInput($('tFirst').value); if (d) $('tFirst').value = A.toLocalInput(A.roundTo10(d)); });
+    $('tApplyDates').addEventListener('click', () => applyDates(false));
     $('tApplyKind').addEventListener('click', applyKind);
+    $('tApplyTitle').addEventListener('click', applyTitle);
     $('tCsvExport').addEventListener('click', exportCsv);
     $('tCsvImport').addEventListener('click', () => $('tCsvFile').click());
     $('tCsvFile').addEventListener('change', async (e) => { const f = e.target.files[0]; e.target.value = ''; if (f) importCsv(await f.text()); });
-    $('schedAll').addEventListener('change', (e) => { S.rows.forEach((r) => { if (r.status !== 'scheduled') r.selected = e.target.checked; }); renderRows(); });
+    $('schedAll').addEventListener('change', (e) => { pending().forEach((r) => { r.selected = e.target.checked; }); renderRows(); });
 
     const rows = $('schedRows');
     const update = (e) => {
       const el = e.target, f = el.dataset.f; if (!f) return;
       const r = S.rows.find((x) => x.id === +el.closest('.srow').dataset.rid); if (!r) return;
       if (f === 'selected') { r.selected = el.checked; scopeLabel(); return; }
-      if (f === 'when') r.when = A.fromLocalInput(el.value);
-      else if (f === 'kind') { r.kind = el.value; r.kindAuto = false; el.closest('.srow').querySelector('.srow-thumb').classList.toggle('reel', r.kind === 'reel'); }
-      else r[f] = el.value;
+      if (f === 'when') {
+        const d = A.fromLocalInput(el.value);
+        r.when = d ? A.roundTo10(d) : null;
+        if (e.type === 'change' && r.when) el.value = A.toLocalInput(r.when); // sempre em passos de 10 minutos
+        updateTimesInfo();
+      } else if (f === 'kind') {
+        r.kind = el.value; r.kindAuto = false; el.closest('.srow').querySelector('.srow-thumb').classList.toggle('reel', r.kind === 'reel');
+      } else r[f] = el.value;
       if (f === 'hashtags') { const c = el.parentElement.querySelector('.tagcount'); const n = A.normalizeHashtags(r.hashtags).length; c.textContent = n; c.classList.toggle('over', n > A.HASHTAG_SOFT_LIMIT); }
       renderIssues(); renderSend();
     };

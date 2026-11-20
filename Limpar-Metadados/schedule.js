@@ -137,6 +137,77 @@
     return issues;
   }
 
+  // ---------- listas para sortear (legendas e hashtags) ----------
+
+  /**
+   * Lista de legendas digitada pela pessoa. Se houver linha em branco, ela separa as legendas
+   * (assim cada legenda pode ter várias linhas); senão, cada linha é uma legenda.
+   */
+  function parseCaptionPool(text) {
+    const t = String(text || '').replace(/\r/g, '').trim();
+    if (!t) return [];
+    const parts = /\n\s*\n/.test(t) ? t.split(/\n\s*\n/) : t.split('\n');
+    return parts.map((p) => p.trim()).filter(Boolean);
+  }
+
+  /** Embaralha (Fisher–Yates) sem alterar o original. */
+  function shuffle(arr, rng = Math.random) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
+
+  /**
+   * Sorteia `count` itens da lista sem repetir até usar todos (como tirar papéis de um saco),
+   * e evita o mesmo item duas vezes seguidas quando a lista é renovada.
+   */
+  function drawMany(pool, count, rng = Math.random) {
+    const out = [];
+    if (!pool.length) return out;
+    let bag = [];
+    while (out.length < count) {
+      if (!bag.length) {
+        bag = shuffle(pool, rng);
+        if (pool.length > 1 && bag[0] === out[out.length - 1]) bag.push(bag.shift());
+      }
+      out.push(bag.shift());
+    }
+    return out;
+  }
+
+  /** Um item da lista diferente do atual (para o botão 🎲 de cada post). */
+  function drawOther(pool, current, rng = Math.random) {
+    if (!pool.length) return '';
+    const others = pool.length > 1 ? pool.filter((p) => p !== current) : pool;
+    return others[Math.floor(rng() * others.length)];
+  }
+
+  /** Hashtags de um post: as fixas + `per` sorteadas da lista (sem repetir dentro do post). */
+  function pickHashtags(pool, per, fixed, rng = Math.random) {
+    const fix = normalizeHashtags(fixed);
+    const fixKeys = new Set(fix.map((t) => t.toLocaleLowerCase('pt-BR')));
+    const options = normalizeHashtags(pool).filter((t) => !fixKeys.has(t.toLocaleLowerCase('pt-BR')));
+    return fix.concat(shuffle(options, rng).slice(0, Math.max(0, per))).join(' ');
+  }
+
+  // ---------- horários em passos de 10 minutos ----------
+
+  const STEP_MIN = 10;
+  /** Arredonda para o múltiplo de 10 minutos mais próximo (ou para cima, com up=true). */
+  function roundTo10(d, up) {
+    const ms = STEP_MIN * 60000;
+    const t = up ? Math.ceil(d.getTime() / ms) * ms : Math.round(d.getTime() / ms) * ms;
+    const out = new Date(t); out.setSeconds(0, 0); return out;
+  }
+  /** Primeiro horário sugerido: daqui a pelo menos 30 minutos, num múltiplo de 10. */
+  function nextSlot(now = new Date()) { return roundTo10(new Date(now.getTime() + 30 * 60000), true); }
+  /** `count` horários a partir de `first`, separados por `minutes` (múltiplos de 10). */
+  function distributeInterval(count, first, minutes) {
+    const start = roundTo10(first);
+    const step = Math.max(STEP_MIN, Math.round(minutes / STEP_MIN) * STEP_MIN) * 60000;
+    return Array.from({ length: Math.max(0, count) }, (_, i) => new Date(start.getTime() + i * step));
+  }
+
   // ---------- planilha (CSV) ----------
 
   const CSV_COLUMNS = ['arquivo', 'tipo', 'titulo', 'legenda', 'hashtags', 'data', 'hora'];
@@ -214,6 +285,7 @@
     MIN_LEAD_MIN, VIDEO_MAX_MONTHS, REEL_MAX_DAYS, REEL_MAX_SECONDS, HASHTAG_SOFT_LIMIT, CSV_COLUMNS,
     normalizeHashtags, buildDescription, applyTemplate, parseTimes, distribute, maxDate, autoKind, validate,
     parseCSV, parseDateTime, csvToChanges, toCSV, fmtDate, fmtTime, toLocalInput, fromLocalInput,
+    parseCaptionPool, shuffle, drawMany, drawOther, pickHashtags, roundTo10, nextSlot, distributeInterval, STEP_MIN,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Agenda = api;
 })(typeof window !== 'undefined' ? window : globalThis);

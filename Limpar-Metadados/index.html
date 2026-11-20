@@ -8,9 +8,9 @@
   <meta name="description" content="Remova GPS, modelo do aparelho, datas e outros metadados dos seus vídeos, direto no navegador.">
   <title>Vídeo Limpo</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=2.2.5">
+  <link rel="stylesheet" href="style.css?v=2.3.0">
 </head>
-<body data-version="2.2.5">
+<body data-version="2.3.0">
   <div class="bg" aria-hidden="true"><span class="bg-circle"></span><span class="bg-slab"></span></div>
 
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -56,39 +56,55 @@
 
     <section class="landing" id="dropzone">
       <h1 class="hero">Seu vídeo.<br>Sem rastros.</h1>
-      <input id="fileInput" type="file" accept="video/*,.mov,.mp4,.m4v,.webm,.mkv,.3gp" multiple hidden>
-      <div class="drop-row">
-        <button class="drop-bar" id="pickBar" type="button">
-          <svg class="ic"><use href="#i-hash"/></svg>
-          <span class="drop-text">Arraste vídeos ou toque para escolher</span>
-          <svg class="ic muted-ic"><use href="#i-film"/></svg>
-        </button>
-        <button class="sq-btn big tile-yellow" id="pickBtn" type="button" aria-label="Escolher vídeos"><svg class="ic lg"><use href="#i-plus"/></svg></button>
-      </div>
-      <p class="drop-hint">Vídeo a vídeo: cada um é baixado separado. MP4, MOV, M4V, 3GP, WebM e MKV. Os arquivos são lidos só na memória do navegador.</p>
+      <p class="lead">Remova GPS, aparelho e datas dos seus vídeos e agende tudo na sua Página do Facebook.</p>
 
-      <div class="folder zip-mode" style="--tab: var(--purple)">
-        <div class="fc-top">
-          <span class="tile" style="--tile: var(--purple)"><svg class="ic"><use href="#i-zip"/></svg></span>
-          <div class="fc-info">
-            <h3>Pasta inteira → um .zip</h3>
-            <span class="sub">Até 100 vídeos de uma vez. No fim você baixa um único .zip com todos limpos.</span>
+      <input id="fileInput" type="file" accept="video/*,.mov,.mp4,.m4v,.webm,.mkv,.3gp" multiple hidden>
+      <input id="folderInput" type="file" webkitdirectory directory multiple hidden>
+      <input id="zipFilesInput" type="file" accept="video/*,.mov,.mp4,.m4v,.webm,.mkv,.3gp" multiple hidden>
+
+      <div class="import-grid">
+        <div class="folder import-card" style="--tab: var(--yellow)">
+          <div class="fc-top">
+            <span class="tile" style="--tile: var(--yellow)"><svg class="ic"><use href="#i-film"/></svg></span>
+            <div class="fc-info">
+              <h3>Vídeo a vídeo</h3>
+              <span class="sub">Cada vídeo limpo é baixado separado.</span>
+            </div>
+          </div>
+          <div class="drop-row">
+            <button class="drop-bar" id="pickBar" type="button">
+              <svg class="ic"><use href="#i-hash"/></svg>
+              <span class="drop-text">Arraste vídeos ou toque para escolher</span>
+            </button>
+            <button class="sq-btn big tile-yellow" id="pickBtn" type="button" aria-label="Escolher vídeos"><svg class="ic lg"><use href="#i-plus"/></svg></button>
           </div>
         </div>
-        <div class="fc-actions">
-          <input id="folderInput" type="file" webkitdirectory directory multiple hidden>
-          <input id="zipFilesInput" type="file" accept="video/*,.mov,.mp4,.m4v,.webm,.mkv,.3gp" multiple hidden>
-          <button class="btn primary" id="folderBtn" type="button"><svg class="ic sm"><use href="#i-folder"/></svg> Importar pasta</button>
-          <button class="btn" id="zipPickBtn" type="button"><svg class="ic sm"><use href="#i-film"/></svg> Selecionar vídeos</button>
+
+        <div class="folder import-card" style="--tab: var(--purple)">
+          <div class="fc-top">
+            <span class="tile" style="--tile: var(--purple)"><svg class="ic"><use href="#i-zip"/></svg></span>
+            <div class="fc-info">
+              <h3>Pasta inteira → um .zip</h3>
+              <span class="sub">Até 100 vídeos. No fim, um único .zip com todos limpos.</span>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn primary" id="folderBtn" type="button"><svg class="ic sm"><use href="#i-folder"/></svg> Importar pasta</button>
+            <button class="btn" id="zipPickBtn" type="button"><svg class="ic sm"><use href="#i-film"/></svg> Selecionar vídeos</button>
+          </div>
+          <details class="howto ios-only">
+            <summary>Como escolher a pasta no iPhone</summary>
+            <ol>
+              <li>Toque em <b>Importar pasta</b>.</li>
+              <li>No app Arquivos, <b>toque na pasta para entrar nela</b>. Os vídeos aparecem apagados: é normal.</li>
+              <li>Toque em <b>Abrir</b>, no canto superior direito.</li>
+            </ol>
+            <p>Vídeos que estão só no app Fotos não aparecem ali: use <b>Selecionar vídeos</b>.</p>
+          </details>
+          <p class="sub desktop-only">Também dá para arrastar uma pasta para esta página.</p>
         </div>
-        <ol class="ios-steps ios-only">
-          <li>Toque em <b>Importar pasta</b>.</li>
-          <li>No app Arquivos, <b>toque na pasta para entrar nela</b>. Os vídeos aparecem apagados: é normal, você está escolhendo a pasta inteira.</li>
-          <li>Toque em <b>Abrir</b>, no canto superior direito.</li>
-        </ol>
-        <p class="sub ios-only">Vídeos que estão só no app Fotos não aparecem nessa tela. Para eles, use <b>Selecionar vídeos</b> e marque vários de uma vez.</p>
-        <p class="sub desktop-only">Também dá para arrastar a pasta para esta página, ou usar <b>Selecionar vídeos</b> para escolher vários arquivos soltos.</p>
       </div>
+      <p class="drop-hint">MP4, MOV, M4V, 3GP, WebM e MKV. Os arquivos são lidos só na memória do navegador.</p>
     </section>
 
     <!-- Opção que vale para os dois modos -->
@@ -155,78 +171,105 @@
         </div>
       </div>
 
-      <div class="folder" id="schedConnect" style="--tab: var(--purple)"></div>
+      <nav class="steps" aria-label="Etapas">
+        <a href="#schedConnect"><b>1</b> Conectar</a>
+        <a href="#stepCaptions"><b>2</b> Legendas</a>
+        <a href="#stepTags"><b>3</b> Hashtags</a>
+        <a href="#stepTimes"><b>4</b> Horários</a>
+        <a href="#stepReview"><b>5</b> Revisar</a>
+        <a href="#schedSend"><b>6</b> Agendar</a>
+      </nav>
 
-      <details class="folder sched-tools" id="schedTools" style="--tab: var(--yellow)" open>
-        <summary>
+      <div class="folder step" id="schedConnect" style="--tab: var(--purple)"></div>
+
+      <p class="scope" id="schedScope"></p>
+
+      <div class="folder step" id="stepCaptions" style="--tab: var(--yellow)">
+        <div class="step-head">
           <span class="tile" style="--tile: var(--yellow)"><svg class="ic"><use href="#i-text"/></svg></span>
-          <span class="sum-text"><b>2. Preencher em massa</b><small>legenda · hashtags · datas · tipo · planilha</small></span>
+          <div><h3>2. Legendas</h3><span class="sub" id="capCount">Nenhuma legenda na lista</span></div>
+        </div>
+        <textarea id="capPool" rows="6" placeholder="Uma legenda por linha.&#10;Para legendas com várias linhas, separe uma da outra com uma linha em branco."></textarea>
+        <p class="sub">Dá para usar <code>{n}</code> (número do vídeo) e <code>{nome}</code> (nome do arquivo). Cada post também tem um botão 🎲 para sortear de novo.</p>
+        <div class="btn-row">
+          <button class="btn primary" id="capShuffle" type="button">🎲 Sortear para todos</button>
+          <button class="btn" id="capOrder" type="button">Usar na ordem</button>
+        </div>
+      </div>
+
+      <div class="folder step" id="stepTags" style="--tab: var(--pink)">
+        <div class="step-head">
+          <span class="tile" style="--tile: var(--pink)"><svg class="ic"><use href="#i-hash"/></svg></span>
+          <div><h3>3. Hashtags</h3><span class="sub" id="tagCount">Nenhuma hashtag na lista</span></div>
+        </div>
+        <label class="field"><span>Lista de hashtags (o app sorteia entre elas)</span>
+          <textarea id="tagPool" rows="3" placeholder="#viagem #praia #ferias #verao #natureza"></textarea></label>
+        <div class="field-row">
+          <label class="field"><span>Quantas por post</span>
+            <select id="tagPer"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option><option>8</option><option>10</option></select></label>
+          <label class="field grow"><span>Fixas (vão em todos os posts)</span>
+            <input type="text" id="tagFixed" placeholder="#minhamarca"></label>
+        </div>
+        <div class="btn-row">
+          <button class="btn primary" id="tagShuffle" type="button">🎲 Sortear para todos</button>
+          <button class="btn" id="tagClear" type="button">Tirar hashtags</button>
+        </div>
+      </div>
+
+      <div class="folder step" id="stepTimes" style="--tab: var(--green)">
+        <div class="step-head">
+          <span class="tile" style="--tile: var(--green)"><svg class="ic"><use href="#i-calendar"/></svg></span>
+          <div><h3>4. Horários</h3><span class="sub" id="timesInfo"></span></div>
+        </div>
+        <div class="field-row">
+          <label class="field grow"><span>Primeiro post</span><input type="datetime-local" id="tFirst" step="600"></label>
+          <label class="field grow"><span>Intervalo entre posts</span>
+            <select id="tInterval">
+              <option value="10" selected>A cada 10 minutos</option><option value="20">A cada 20 minutos</option><option value="30">A cada 30 minutos</option>
+              <option value="60">A cada 1 hora</option><option value="120">A cada 2 horas</option><option value="180">A cada 3 horas</option>
+              <option value="360">A cada 6 horas</option><option value="720">A cada 12 horas</option><option value="1440">1 por dia</option>
+            </select></label>
+        </div>
+        <p class="sub" id="tTz"></p>
+        <div class="btn-row"><button class="btn primary" id="tApplyDates" type="button">Distribuir horários</button></div>
+      </div>
+
+      <details class="folder step advanced" style="--tab: var(--gray)">
+        <summary>
+          <span class="tile" style="--tile: var(--gray)"><svg class="ic"><use href="#i-sheet"/></svg></span>
+          <span class="sum-text"><b>Avançado</b><small>tipo de post · título · planilha</small></span>
         </summary>
-        <p class="sub scope" id="schedScope"></p>
-
-        <div class="tool">
-          <h4>Legenda modelo</h4>
-          <textarea id="tTemplate" rows="2" placeholder="Ex.: Parte {n} da viagem ✈️"></textarea>
-          <input type="text" id="tTitle" placeholder="Título modelo (opcional). Ex.: Viagem #{n}">
-          <p class="sub">Variáveis: <code>{n}</code> número · <code>{total}</code> · <code>{nome}</code> nome do arquivo · <code>{data}</code> · <code>{hora}</code></p>
-          <button class="btn small" id="tApplyCaption" type="button">Aplicar legenda</button>
+        <div class="field-row">
+          <label class="field grow"><span>Tipo de post</span>
+            <select id="tKind"><option value="auto">Automático: Reel se for vertical e curto</option><option value="video">Todos como vídeo</option><option value="reel">Todos como Reel</option></select></label>
+          <div class="field"><span>&nbsp;</span><button class="btn" id="tApplyKind" type="button">Aplicar tipo</button></div>
         </div>
-
-        <div class="tool">
-          <h4>Hashtags</h4>
-          <input type="text" id="tTags" placeholder="#viagem #praia #ferias">
-          <div class="tagsets" id="tSets"></div>
-          <div class="row">
-            <select id="tTagMode" aria-label="Como aplicar"><option value="replace">Substituir as hashtags</option><option value="add">Somar às que já existem</option></select>
-            <button class="btn small" id="tApplyTags" type="button">Aplicar hashtags</button>
-          </div>
-          <div class="row">
-            <input type="text" id="tSetName" placeholder="Nome do conjunto (ex.: Viagem)">
-            <button class="btn small" id="tSaveSet" type="button">Salvar conjunto</button>
-          </div>
+        <div class="field-row">
+          <label class="field grow"><span>Título (opcional, aparece em vídeos)</span><input type="text" id="tTitle" placeholder="Ex.: Viagem #{n}"></label>
+          <div class="field"><span>&nbsp;</span><button class="btn" id="tApplyTitle" type="button">Aplicar título</button></div>
         </div>
-
-        <div class="tool">
-          <h4>Distribuir datas</h4>
-          <div class="row">
-            <label class="field grow"><span>Começar em</span><input type="date" id="tStart"></label>
-            <label class="field grow"><span>Horários por dia</span><input type="text" id="tTimes" placeholder="12:00, 19:00"></label>
-          </div>
-          <div class="field"><span>Dias da semana</span><div class="days" id="tDays"></div></div>
-          <p class="sub" id="tTz"></p>
-          <button class="btn small" id="tApplyDates" type="button">Distribuir datas</button>
-        </div>
-
-        <div class="tool">
-          <h4>Tipo de publicação</h4>
-          <div class="row">
-            <select id="tKind" aria-label="Tipo"><option value="auto">Automático: Reel se for vertical e curto</option><option value="video">Todos como vídeo</option><option value="reel">Todos como Reel</option></select>
-            <button class="btn small" id="tApplyKind" type="button">Aplicar tipo</button>
-          </div>
-        </div>
-
-        <div class="tool">
-          <h4>Planilha (Excel / Google Planilhas)</h4>
-          <p class="sub">Colunas: <code>arquivo; tipo; titulo; legenda; hashtags; data; hora</code>. Baixe a planilha da fila, preencha e importe de volta.</p>
+        <div class="field">
+          <span>Planilha (Excel / Google Planilhas)</span>
+          <p class="sub">Colunas: <code>arquivo; tipo; titulo; legenda; hashtags; data; hora</code>.</p>
           <input type="file" id="tCsvFile" accept=".csv,text/csv" hidden>
-          <div class="row">
-            <button class="btn small" id="tCsvExport" type="button"><svg class="ic sm"><use href="#i-download"/></svg> Baixar planilha</button>
-            <button class="btn small" id="tCsvImport" type="button"><svg class="ic sm"><use href="#i-sheet"/></svg> Importar planilha</button>
+          <div class="btn-row">
+            <button class="btn" id="tCsvExport" type="button"><svg class="ic sm"><use href="#i-download"/></svg> Baixar planilha</button>
+            <button class="btn" id="tCsvImport" type="button"><svg class="ic sm"><use href="#i-sheet"/></svg> Importar planilha</button>
           </div>
         </div>
       </details>
 
-      <div class="sched-bar">
-        <h3>3. Revisar cada vídeo</h3>
+      <div class="step-bar" id="stepReview">
+        <h3>5. Revisar cada post</h3>
         <label class="check"><input type="checkbox" id="schedAll"> <span>Selecionar todos</span></label>
       </div>
       <div id="schedRows" class="sched-rows"></div>
 
-      <div class="folder" id="schedSend" style="--tab: var(--green)"></div>
+      <div class="folder step" id="schedSend" style="--tab: var(--green)"></div>
     </section>
 
     <footer class="app-foot">
-      Vídeo Limpo <b>v2.2.5</b> · código aberto (MIT) ·
+      Vídeo Limpo <b>v2.3.0</b> · código aberto (MIT) ·
       <a href="https://github.com/ast1500/Relogio-Digital" rel="noopener">GitHub</a>
     </footer>
   </div>
@@ -238,12 +281,12 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
-  <script src="config.js?v=2.2.5"></script>
-  <script src="metadata.js?v=2.2.5"></script>
-  <script src="zip.js?v=2.2.5"></script>
-  <script src="schedule.js?v=2.2.5"></script>
-  <script src="facebook.js?v=2.2.5"></script>
-  <script src="scheduler.js?v=2.2.5"></script>
-  <script src="app.js?v=2.2.5"></script>
+  <script src="config.js?v=2.3.0"></script>
+  <script src="metadata.js?v=2.3.0"></script>
+  <script src="zip.js?v=2.3.0"></script>
+  <script src="schedule.js?v=2.3.0"></script>
+  <script src="facebook.js?v=2.3.0"></script>
+  <script src="scheduler.js?v=2.3.0"></script>
+  <script src="app.js?v=2.3.0"></script>
 </body>
 </html>
