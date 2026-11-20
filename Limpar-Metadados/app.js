@@ -536,6 +536,20 @@
     renderAll();
   });
 
+  // Aviso de versão nova: o Safari às vezes mostra a página guardada em cache depois de uma atualização.
+  (function checkUpdate() {
+    const current = document.body.dataset.version;
+    if (!current || !window.fetch || location.protocol === 'file:') return;
+    fetch('version.json?t=' + Date.now(), { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((info) => {
+        if (!info || !info.version || info.version === current) return;
+        $('updateBar').hidden = false;
+        $('updateBtn').addEventListener('click', () => { location.href = location.pathname + '?v=' + encodeURIComponent(info.version); });
+      })
+      .catch(() => { /* sem internet: segue com a versão atual */ });
+  })();
+
   const pick = () => $('fileInput').click();
   $('pickBtn').addEventListener('click', pick);
   $('pickBar').addEventListener('click', pick);

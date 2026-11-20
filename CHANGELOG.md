@@ -3,6 +3,12 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [2.2.2] - 2026-11-20
+
+### Corrigido
+- Depois de uma atualização, o Safari podia continuar mostrando a versão antiga guardada em cache. Agora os arquivos
+  levam o número da versão no endereço e, se a página aberta for antiga, aparece o aviso **"Nova versão disponível → Atualizar"**.
+
 ## [2.2.1] - 2026-11-20
 
 ### Adicionado
@@ -106,6 +112,7 @@ Primeira versão, como **Editor Limpo** (editor de vídeo com limpeza de metadad
 - Publicação automática no GitHub Pages e criação de Release a cada tag `v*`.
 - Licença MIT.
 
+[2.2.2]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.2.2
 [2.2.1]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.2.1
 [2.2.0]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.2.0
 [2.1.2]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.1.2
