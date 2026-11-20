@@ -20,5 +20,5 @@ jobs:
         run: npm test
       - name: Verificar a sintaxe do JavaScript
         run: |
-          node --check Editor-de-Video/app.js
-          node --check Editor-de-Video/metadata.js
+          node --check Limpar-Metadados/app.js
+          node --check Limpar-Metadados/metadata.js

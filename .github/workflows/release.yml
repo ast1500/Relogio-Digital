@@ -35,14 +35,14 @@ jobs:
             on && /^\[[0-9.]+\]:/ {exit}
             on {print}
           ' CHANGELOG.md > notes.md
-          printf '\n---\n**Abrir online:** https://%s.github.io/%s/Editor-de-Video/\n' \
+          printf '\n---\n**Abrir online:** https://%s.github.io/%s/Limpar-Metadados/\n' \
             "${GITHUB_REPOSITORY_OWNER}" "${GITHUB_REPOSITORY#*/}" >> notes.md
           cat notes.md
       - name: Pacote para usar offline
         run: |
           mkdir pacote
-          cp -r Editor-de-Video LICENSE pacote/
-          (cd pacote && zip -r "../editor-limpo-${TAG}.zip" .)
+          cp -r Limpar-Metadados LICENSE pacote/
+          (cd pacote && zip -r "../video-limpo-${TAG}.zip" .)
       - name: Publicar a Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -52,7 +52,7 @@ jobs:
             exit 0
           fi
           # Sem a tag ainda (início manual), o gh cria a tag apontando para este commit.
-          gh release create "$TAG" "editor-limpo-${TAG}.zip" \
-            --title "Editor Limpo ${TAG}" \
+          gh release create "$TAG" "video-limpo-${TAG}.zip" \
+            --title "Vídeo Limpo ${TAG}" \
             --notes-file notes.md \
             --target "$GITHUB_SHA"

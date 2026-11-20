@@ -1,6 +1,6 @@
 ---
 name: Ideia ou melhoria
-about: Sugira um recurso novo para o Editor Limpo
+about: Sugira um recurso novo para o Vídeo Limpo
 labels: enhancement
 ---
 
