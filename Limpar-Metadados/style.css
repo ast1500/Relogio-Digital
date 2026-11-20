@@ -266,6 +266,10 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .92em; 
 .zip-mode { display: grid; gap: 12px; margin-top: 34px; }
 .zip-mode .fc-info h3 { font-size: 18px; }
 .landing.compact .zip-mode { margin-top: 26px; }
+.ios-steps { display: grid; gap: 6px; padding: 12px 14px 12px 34px; font-size: 14px; font-weight: 600;
+  background: #fff; border: 2px solid var(--ink); border-radius: 10px; }
+.ios-steps b { font-weight: 800; }
+body.not-ios .ios-only, body.is-ios .desktop-only { display: none; }
 .gcard { display: grid; gap: 14px; }
 .g-list { list-style: none; display: grid; gap: 4px; max-height: 360px; overflow: auto; padding: 2px; }
 .g-row {

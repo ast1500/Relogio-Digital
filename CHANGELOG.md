@@ -3,6 +3,14 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [2.1.2] - 2026-11-20
+
+### Alterado
+- No iPhone/iPad, passo a passo na tela para escolher a pasta no app Arquivos (entrar na pasta e tocar em Abrir;
+  os vídeos aparecem apagados, e isso é normal).
+- **Selecionar vídeos** vira um botão visível ao lado de "Importar pasta" (serve para vídeos que estão só no app Fotos).
+- Aviso quando a pasta escolhida não entrega nenhum arquivo.
+
 ## [2.1.1] - 2026-11-20
 
 ### Alterado
@@ -73,6 +81,7 @@ Primeira versão, como **Editor Limpo** (editor de vídeo com limpeza de metadad
 - Publicação automática no GitHub Pages e criação de Release a cada tag `v*`.
 - Licença MIT.
 
+[2.1.2]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.1.2
 [2.1.1]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.1.1
 [2.1.0]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.1.0
 [2.0.0]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.0.0

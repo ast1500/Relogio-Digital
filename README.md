@@ -6,7 +6,7 @@
 Nenhum arquivo sai do seu computador.
 
 [![Testes](https://github.com/ast1500/Relogio-Digital/actions/workflows/ci.yml/badge.svg)](https://github.com/ast1500/Relogio-Digital/actions/workflows/ci.yml)
-[![Versão](https://img.shields.io/badge/vers%C3%A3o-2.1.1-ffd23f)](CHANGELOG.md)
+[![Versão](https://img.shields.io/badge/vers%C3%A3o-2.1.2-ffd23f)](CHANGELOG.md)
 [![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-7b6cf6)](LICENSE)
 
 [**Abrir o Vídeo Limpo**](https://ast1500.github.io/Relogio-Digital/Limpar-Metadados/) · [Histórico de versões](CHANGELOG.md)
@@ -36,7 +36,8 @@ entrega uma cópia limpa.
    - **Vídeo a vídeo:** arraste ou escolha os vídeos; veja o que cada um revela e toque em **Baixar limpo** (ou **Limpar todos**).
    - **Pasta inteira → um .zip:** toque em **Importar pasta** (ou arraste uma pasta) com até **100 vídeos** e depois em
      **Limpar tudo e baixar ZIP**. No fim vem um único `.zip` com todos os vídeos limpos, mantendo as subpastas.
-     No iPhone/iPad (iOS 18.4 ou mais novo), **Importar pasta** abre o app Arquivos: entre na pasta e toque em **Abrir**.
+     No iPhone/iPad (iOS 18.4 ou mais novo), **Importar pasta** abre o app Arquivos: **toque na pasta para entrar nela** (os vídeos
+     aparecem apagados, é normal) e toque em **Abrir**, no canto superior direito. Para vídeos que estão só no app Fotos, use **Selecionar vídeos**.
 
 **Limpeza rápida** (padrão), para MP4, MOV, M4V, 3GP, WebM e MKV: apaga os metadados **sem re-codificar**. O vídeo
 e o áudio ficam byte a byte iguais, o tamanho do arquivo não muda e funciona até com arquivos de vários GB.
