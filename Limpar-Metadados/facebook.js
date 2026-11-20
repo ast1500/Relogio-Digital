@@ -2,7 +2,8 @@
  * facebook.js — conexão com a Página do Facebook para agendar vídeos e Reels.
  *
  * Dois "motores" com a mesma interface:
- *   FacebookPages.real(appId)  → Graph API de verdade (login pelo SDK oficial, carregado só quando usado)
+ *   FacebookPages.real(appId, configId) → Graph API de verdade (login pelo SDK oficial, carregado só quando usado).
+ *     configId: ID da configuração do "Login do Facebook para Empresas" (se o app usar esse tipo de login).
  *   FacebookPages.mock()       → Facebook simulado, para testar a tela inteira sem conta
  *
  * Interface:
@@ -73,15 +74,17 @@
 
   // ---------- motor real ----------
 
-  let sdkPromise = null;
-  /** Carrega o SDK oficial só quando a pessoa clica em "Entrar com Facebook". */
-  function loadSdk(appId) {
+  let sdkPromise = null, initedAppId = null;
+  /** Carrega o SDK oficial só quando a pessoa clica em "Entrar com Facebook" (e reconfigura se o App ID mudar). */
+  async function loadSdk(appId) {
+    await loadSdkScript();
+    if (initedAppId !== appId) { root.FB.init({ appId, version: GRAPH_VERSION, cookie: false, xfbml: false }); initedAppId = appId; }
+    return root.FB;
+  }
+  function loadSdkScript() {
     if (sdkPromise) return sdkPromise;
     sdkPromise = new Promise((resolve, reject) => {
-      root.fbAsyncInit = () => {
-        root.FB.init({ appId, version: GRAPH_VERSION, cookie: false, xfbml: false });
-        resolve(root.FB);
-      };
+      root.fbAsyncInit = () => resolve();
       const s = document.createElement('script');
       s.src = 'https://connect.facebook.net/pt_BR/sdk.js';
       s.async = true; s.crossOrigin = 'anonymous';
@@ -91,15 +94,17 @@
     return sdkPromise;
   }
 
-  function real(appId) {
+  function real(appId, configId) {
     let userToken = null;
 
     function login(FB, scopes) {
+      // "Login do Facebook para Empresas" usa uma configuração (config_id) com as permissões já escolhidas no painel da Meta.
+      const opts = configId ? { config_id: configId } : { scope: scopes.join(','), return_scopes: true, auth_type: 'rerequest' };
       return new Promise((resolve, reject) => {
         FB.login((res) => {
-          if (res && res.authResponse) resolve(res.authResponse);
+          if (res && res.authResponse && res.authResponse.accessToken) resolve(res.authResponse);
           else reject(new FbError('Login cancelado ou não autorizado.', 'login'));
-        }, { scope: scopes.join(','), return_scopes: true, auth_type: 'rerequest' });
+        }, opts);
       });
     }
 
@@ -117,6 +122,16 @@
         }
         userToken = auth.accessToken;
         const me = await getJSON(GRAPH + '/me?fields=name&access_token=' + encodeURIComponent(userToken));
+        // Confere o que a pessoa realmente autorizou, para explicar o que falta em vez de falhar no envio.
+        const perms = await getJSON(GRAPH + '/me/permissions?access_token=' + encodeURIComponent(userToken)).catch(() => null);
+        if (perms && Array.isArray(perms.data)) {
+          const granted = new Set(perms.data.filter((p) => p.status === 'granted').map((p) => p.permission));
+          const missing = ['pages_show_list', 'pages_manage_posts'].filter((p) => !granted.has(p));
+          if (missing.length) {
+            throw new FbError('O Facebook não concedeu: ' + missing.join(', ') + '. Confira se essas permissões estão no caso de uso' +
+              (configId ? ' e na configuração do login' : '') + ', e entre de novo aceitando todas.', 'perms');
+          }
+        }
         return { name: me.name };
       },
       async pages() {

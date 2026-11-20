@@ -19,6 +19,7 @@
     set(k, v) { try { localStorage.setItem('vl-agenda-' + k, JSON.stringify(v)); } catch (e) { /* sem armazenamento */ } },
   };
   const configAppId = () => store.get('appId', '') || ((window.VIDEO_LIMPO_CONFIG || {}).facebookAppId || '');
+  const configLoginId = () => store.get('configId', '') || ((window.VIDEO_LIMPO_CONFIG || {}).facebookConfigId || '');
 
   const S = {
     open: false, title: '', rows: [], hidden: [],
@@ -100,7 +101,7 @@
   async function connect(useMock) {
     S.connecting = true; S.connectError = ''; renderConnect();
     try {
-      S.engine = useMock ? FacebookPages.mock() : FacebookPages.real(configAppId());
+      S.engine = useMock ? FacebookPages.mock() : FacebookPages.real(configAppId(), configLoginId());
       S.user = await S.engine.connect();
       S.pages = (await S.engine.pages()).filter((p) => p.canPost !== false);
       if (!S.pages.length) throw new Error('Nenhuma Página encontrada nesta conta. É preciso ser administrador(a) de uma Página do Facebook.');
@@ -142,8 +143,9 @@
         (appId ? '' : '<p class="fc-note">Para entrar com o Facebook, falta configurar o <b>App ID</b> (veja abaixo). Enquanto isso, dá para testar tudo no modo simulação.</p>') +
         '<details class="fc-details"><summary>Configurar App ID</summary><div class="appid">' +
         '<p class="sub">Número público do app criado em developers.facebook.com (com o domínio <code>' + esc(location.hostname || 'ast1500.github.io') + '</code> autorizado). Fica salvo só neste navegador.</p>' +
-        '<div class="row"><input type="text" inputmode="numeric" id="schedAppId" placeholder="Ex.: 123456789012345" value="' + esc(store.get('appId', '')) + '">' +
-        '<button class="btn small" data-sact="saveappid" type="button">Salvar</button></div></div></details>';
+        '<label class="field"><span>ID do app</span><input type="text" inputmode="numeric" id="schedAppId" placeholder="Ex.: 123456789012345" value="' + esc(store.get('appId', '')) + '"></label>' +
+        '<label class="field"><span>ID da configuração <small class="sub">(do "Login do Facebook para Empresas")</small></span><input type="text" inputmode="numeric" id="schedConfigId" placeholder="Ex.: 987654321098765" value="' + esc(store.get('configId', '')) + '"></label>' +
+        '<button class="btn small" data-sact="saveappid" type="button">Salvar</button></div></details>';
       if (S.connectError) html += '<p class="fc-note err">' + esc(S.connectError) + '</p>';
     }
     html += '<p class="sub privacy">🔒 O login do Facebook só é carregado quando você toca em "Entrar". A limpeza continua 100% no seu aparelho; só os vídeos que você agendar são enviados, já limpos, para o Facebook.</p>';
@@ -379,7 +381,9 @@
         else if (act === 'cancel' && S.controller) S.controller.abort();
         else if (act === 'saveappid') {
           const v = $('schedAppId').value.replace(/\D/g, '');
-          store.set('appId', v); renderConnect(); toast(v ? 'App ID salvo neste navegador.' : 'App ID removido.');
+          const c = $('schedConfigId').value.replace(/\D/g, '');
+          store.set('appId', v); store.set('configId', c); renderConnect();
+          toast(v ? 'Salvo neste navegador.' + (c ? '' : ' Se o app usa "Login do Facebook para Empresas", preencha também o ID da configuração.') : 'App ID removido.');
         }
         return;
       }

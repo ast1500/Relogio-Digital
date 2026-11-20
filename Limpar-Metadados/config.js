@@ -6,4 +6,6 @@
  */
 window.VIDEO_LIMPO_CONFIG = {
   facebookAppId: '',
+  // ID da configuração do "Login do Facebook para Empresas" (Login do Facebook para Empresas → Configurações).
+  facebookConfigId: '',
 };

@@ -96,3 +96,40 @@ test('modo simulação recusa horário fora da janela, como o Facebook', async (
   assert.match(ok.id, /^sim-/);
   assert.equal(m.scheduled.length, 1);
 });
+
+/** SDK do Facebook falso: o <script> "carrega" na hora e FB.login devolve um token. */
+function fakeSdk(permissions) {
+  const loginOpts = [];
+  globalThis.document = { head: { appendChild: () => setTimeout(() => globalThis.fbAsyncInit(), 0) }, createElement: () => ({}) };
+  globalThis.FB = {
+    init() {},
+    login(cb, opts) { loginOpts.push(opts); cb({ authResponse: { accessToken: 'USER_TOKEN' } }); },
+    logout() {},
+  };
+  globalThis.fetch = async (url) => {
+    const body = url.includes('/me/permissions') ? { data: permissions } : url.includes('/me/accounts') ? { data: [{ id: '1', name: 'Pág', access_token: 'PT', tasks: ['CREATE_CONTENT'] }] } : { name: 'Pessoa' };
+    return { ok: true, json: async () => body };
+  };
+  return loginOpts;
+}
+const granted = (...p) => p.map((permission) => ({ permission, status: 'granted' }));
+
+test('login para Empresas usa o ID da configuração e confere as permissões', async () => {
+  const opts = fakeSdk(granted('pages_show_list', 'pages_manage_posts', 'pages_read_engagement'));
+  const fb = FB.real('APP', 'CONFIG123');
+  assert.deepEqual(await fb.connect(), { name: 'Pessoa' });
+  assert.deepEqual(opts[0], { config_id: 'CONFIG123' });
+  const pages = await fb.pages();
+  assert.deepEqual(pages.map((p) => [p.id, p.token, p.canPost]), [['1', 'PT', true]]);
+});
+
+test('sem ID da configuração, pede as permissões pelo scope', async () => {
+  const opts = fakeSdk(granted('pages_show_list', 'pages_manage_posts'));
+  await FB.real('APP').connect();
+  assert.match(opts[0].scope, /pages_manage_posts/);
+});
+
+test('se faltar pages_manage_posts, explica o que fazer', async () => {
+  fakeSdk(granted('pages_show_list'));
+  await assert.rejects(FB.real('APP', 'C').connect(), (e) => e.code === 'perms' && /pages_manage_posts/.test(e.message) && /configuração do login/.test(e.message));
+});
