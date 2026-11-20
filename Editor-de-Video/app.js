@@ -134,7 +134,7 @@
       ctx.restore();
     }
     if (state.drawing && drag && drag.redact) {
-      ctx.save(); ctx.strokeStyle = '#2e94e3'; ctx.lineWidth = Math.max(2, W / 400); ctx.setLineDash([8, 6]);
+      ctx.save(); ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = Math.max(3, W / 300); ctx.setLineDash([10, 6]);
       ctx.strokeRect(drag.redact.x * W, drag.redact.y * H, drag.redact.w * W, drag.redact.h * H); ctx.restore();
     }
 
@@ -410,15 +410,27 @@
 
   // ---------- metadados ----------
 
+  const CAT_STYLE = {
+    'Localização': ['i-pin', 'var(--pink)'], 'Identificação': ['i-id', 'var(--pink)'],
+    'Aparelho': ['i-phone', 'var(--purple)'], 'Data': ['i-calendar', 'var(--yellow)'],
+    'Autoria': ['i-user', 'var(--sand)'], 'Software': ['i-code', 'var(--lime)'],
+    'XMP': ['i-tag', 'var(--sand)'], 'Outros': ['i-tag', 'var(--gray)'],
+  };
+  function iconTile(iconId, color) {
+    const t = document.createElement('span'); t.className = 'tile'; t.style.setProperty('--tile', color);
+    t.innerHTML = '<svg class="ic"><use href="#' + iconId + '"/></svg>';
+    return t;
+  }
+
   function renderMeta(result) {
     const list = $('metaList'); list.innerHTML = '';
     const f = result.findings;
     const high = f.filter((x) => x.severity === 'alta').length;
-    $('metaSummary').textContent = f.length ? f.length + ' item(ns)' + (high ? ', ' + high + ' sensível(is)' : '') : '';
+    $('metaSummary').textContent = f.length ? f.length + ' item(ns) encontrados' + (high ? ' · ' + high + ' sensível(is)' : '') : 'nada a esconder';
     if (result.format === 'unknown') {
       list.innerHTML = '<div class="meta-note">Formato não reconhecido para leitura de metadados. A exportação com re-codificação ainda gera um arquivo limpo.</div>';
     } else if (!f.length) {
-      list.innerHTML = '<div class="meta-empty">✓ Nenhum metadado identificável encontrado.</div>';
+      list.innerHTML = '<div class="meta-empty"><span class="tile" style="--tile:#fff"><svg class="ic"><use href="#i-check"/></svg></span>Nenhum metadado identificável encontrado.</div>';
     }
     const order = { alta: 0, 'média': 1, baixa: 2 };
     for (const x of f.slice().sort((p, q) => order[p.severity] - order[q.severity])) {
@@ -429,7 +441,9 @@
       const value = document.createElement('div'); value.className = 'value'; value.textContent = x.value;
       const where = document.createElement('div'); where.className = 'where';
       where.textContent = x.category + ' · ' + x.where + (x.removable ? '' : ' · só sai com a exportação re-codificada');
-      body.append(label, value, where); row.append(sev, body); list.appendChild(row);
+      body.append(label, value, where);
+      const st = CAT_STYLE[x.category] || CAT_STYLE.Outros;
+      row.append(iconTile(st[0], st[1]), body, sev); list.appendChild(row);
     }
     if (result.format === 'webm') {
       const n = document.createElement('div'); n.className = 'meta-note';
@@ -446,7 +460,7 @@
   }
 
   $('quickClean').addEventListener('click', async () => {
-    const btn = $('quickClean'); btn.disabled = true; btn.textContent = 'Limpando…';
+    const btn = $('quickClean'); const original = btn.innerHTML; btn.disabled = true; btn.textContent = 'Limpando…';
     try {
       const { blob, removedBlocks } = await VideoMeta.clean(state.file);
       const after = await VideoMeta.analyze(blob);
@@ -454,7 +468,7 @@
       download(blob, outputName(ext));
       toast('Arquivo limpo baixado (' + removedBlocks + ' bloco(s) removido(s); ' + after.findings.length + ' item(ns) restante(s)). Vídeo e áudio intactos.');
     } catch (e) { toast('Erro ao limpar: ' + e.message, true); }
-    btn.disabled = false; btn.textContent = '⚡ Limpar sem re-codificar';
+    btn.disabled = false; btn.innerHTML = original;
   });
 
   // ---------- carregar arquivo ----------
@@ -500,13 +514,15 @@
     state.playable = false;
     preview.width = 640; preview.height = 360;
     pctx.fillStyle = '#000'; pctx.fillRect(0, 0, 640, 360);
-    pctx.fillStyle = '#9a9ab8'; pctx.font = '16px system-ui'; pctx.textAlign = 'center';
+    pctx.fillStyle = '#fbf8f3'; pctx.font = '600 16px system-ui'; pctx.textAlign = 'center';
     pctx.fillText('O navegador não consegue reproduzir este codec (ex.: HEVC).', 320, 170);
     pctx.fillText('A limpeza de metadados sem re-codificação continua disponível.', 320, 196);
     updateFileDetails();
   });
 
   $('pickBtn').addEventListener('click', () => $('fileInput').click());
+  $('pickBar').addEventListener('click', () => $('fileInput').click());
+  document.querySelectorAll('.folder-grid .folder').forEach((c) => c.addEventListener('click', () => $('fileInput').click()));
   $('newFile').addEventListener('click', () => $('fileInput').click());
   $('fileInput').addEventListener('change', (e) => { loadFile(e.target.files[0]); e.target.value = ''; });
 
