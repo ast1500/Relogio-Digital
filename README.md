@@ -6,7 +6,7 @@
 Nenhum arquivo sai do seu computador.
 
 [![Testes](https://github.com/ast1500/Relogio-Digital/actions/workflows/ci.yml/badge.svg)](https://github.com/ast1500/Relogio-Digital/actions/workflows/ci.yml)
-[![Versão](https://img.shields.io/badge/vers%C3%A3o-2.0.0-ffd23f)](CHANGELOG.md)
+[![Versão](https://img.shields.io/badge/vers%C3%A3o-2.1.0-ffd23f)](CHANGELOG.md)
 [![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-7b6cf6)](LICENSE)
 
 [**Abrir o Vídeo Limpo**](https://ast1500.github.io/Relogio-Digital/Limpar-Metadados/) · [Histórico de versões](CHANGELOG.md)
@@ -32,8 +32,11 @@ entrega uma cópia limpa.
 ## Como usar
 
 1. Abra <https://ast1500.github.io/Relogio-Digital/Limpar-Metadados/> (o processamento acontece no seu aparelho, mesmo online).
-2. Arraste um ou vários vídeos.
-3. Veja o que cada um revela e toque em **Baixar limpo** (ou **Limpar todos**).
+2. Escolha um modo:
+   - **Vídeo a vídeo:** arraste ou escolha os vídeos; veja o que cada um revela e toque em **Baixar limpo** (ou **Limpar todos**).
+   - **Pasta inteira → um .zip:** toque em **Importar pasta** (ou arraste uma pasta) com até **100 vídeos** e depois em
+     **Limpar tudo e baixar ZIP**. No fim vem um único `.zip` com todos os vídeos limpos, mantendo as subpastas.
+     No iPhone, use **escolher vários vídeos para o .zip** (o Safari do iPhone não abre pastas).
 
 **Limpeza rápida** (padrão), para MP4, MOV, M4V, 3GP, WebM e MKV: apaga os metadados **sem re-codificar**. O vídeo
 e o áudio ficam byte a byte iguais, o tamanho do arquivo não muda e funciona até com arquivos de vários GB.
@@ -61,8 +64,9 @@ Relogio-Digital/
 ├── Limpar-Metadados/     ← Vídeo Limpo (o projeto principal)
 │   ├── index.html        interface
 │   ├── style.css         visual
-│   ├── app.js            lista de arquivos, limpeza rápida e profunda
-│   └── metadata.js       leitura e limpeza de metadados (também roda no Node)
+│   ├── app.js            lista de arquivos, pastas → .zip, limpeza rápida e profunda
+│   ├── metadata.js       leitura e limpeza de metadados (também roda no Node)
+│   └── zip.js            gerador de .zip sem bibliotecas (ZIP64, nomes UTF-8, data fixa)
 ├── Editor-de-Video/      redireciona para Limpar-Metadados/ (endereço da v1)
 ├── Relógio-Digital/      o relógio digital original
 ├── tests/                testes do limpador (com vídeos de exemplo)
@@ -76,12 +80,13 @@ Relogio-Digital/
 - **WebM/MKV:** transforma `Tags` e anexos em elementos `Void`, zera título, apps e nomes de trilha e apaga a data,
   também sem mudar tamanhos. Os `Clusters` (vídeo e áudio) são copiados sem tocar.
 - O arquivo final é montado com `Blob.slice()`: o vídeo nunca é carregado inteiro na memória.
+- O `.zip` é montado sem compressão (vídeo já é comprimido) e também com `Blob`s, então 100 vídeos não ocupam o dobro da memória.
 - A limpeza profunda desenha cada quadro num `<canvas>` e grava com `MediaRecorder`, gerando um arquivo novo.
 
 ## Desenvolvimento
 
 ```bash
-npm test     # 12 testes do limpador (Node 22+)
+npm test     # 15 testes: limpador de metadados e gerador de .zip (Node 22+)
 ```
 
 Os vídeos em `tests/fixtures/` têm metadados **falsos** (GPS de pontos turísticos), gerados com `ffmpeg` só para teste.

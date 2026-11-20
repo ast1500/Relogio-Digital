@@ -3,7 +3,20 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
-## [2.0.0] - 2026-11-20
+## [2.1.0] - 2026-11-20
+
+### Adicionado
+- **Pasta inteira → um .zip**: importe uma pasta (ou arraste-a para a página) com até **100 vídeos**; todos são
+  limpos e, no fim, você baixa **um único .zip** com os vídeos limpos.
+  - Subpastas são mantidas dentro do .zip (com nomes originais) ou os nomes viram aleatórios.
+  - Arquivos que não são vídeo, vazios ou ocultos (como `._arquivo` do macOS) são ignorados.
+  - Opção de usar a limpeza profunda nos vídeos que a rápida não alcança.
+  - No iPhone/iPad, onde o Safari não permite escolher pastas, o mesmo modo funciona escolhendo vários vídeos.
+- Gerador de .zip próprio (`zip.js`), sem bibliotecas: sem compressão, sem copiar os vídeos na memória,
+  ZIP64 para mais de 4 GB e data fixa (1980-01-01) para o .zip não revelar quando foi feito.
+- Testes do .zip (15 testes no total).
+
+ - 2026-11-20
 
 O projeto passa a se chamar **Vídeo Limpo** e faz uma coisa só: **remover os metadados** dos vídeos.
 
@@ -54,5 +67,6 @@ Primeira versão, como **Editor Limpo** (editor de vídeo com limpeza de metadad
 - Publicação automática no GitHub Pages e criação de Release a cada tag `v*`.
 - Licença MIT.
 
+[2.1.0]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.1.0
 [2.0.0]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.0.0
 [1.0.0]: https://github.com/ast1500/Relogio-Digital/releases/tag/v1.0.0

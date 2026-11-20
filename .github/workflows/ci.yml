@@ -22,3 +22,4 @@ jobs:
         run: |
           node --check Limpar-Metadados/app.js
           node --check Limpar-Metadados/metadata.js
+          node --check Limpar-Metadados/zip.js

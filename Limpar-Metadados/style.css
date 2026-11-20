@@ -259,6 +259,27 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .92em; 
 .how b { color: var(--ink); }
 .files:not([hidden]) ~ .about .section-title { margin-top: 48px; }
 
+.options { margin-top: 22px; }
+.options .check { margin: 0; }
+
+/* ---------- modo pasta → .zip ---------- */
+.zip-mode { display: grid; gap: 12px; margin-top: 34px; }
+.zip-mode .fc-info h3 { font-size: 18px; }
+.landing.compact .zip-mode { margin-top: 26px; }
+.gcard { display: grid; gap: 14px; }
+.g-list { list-style: none; display: grid; gap: 4px; max-height: 360px; overflow: auto; padding: 2px; }
+.g-row {
+  display: grid; grid-template-columns: 12px minmax(0, 1fr) auto auto; gap: 10px; align-items: center;
+  padding: 7px 10px; background: #fff; border: 2px solid var(--ink); border-radius: 9px; font-size: 13px;
+}
+.g-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); }
+.g-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-size { color: var(--muted); font-weight: 600; font-size: 12px; white-space: nowrap; }
+.g-chips { display: flex; gap: 4px; }
+.g-chips .chip { font-size: 11px; padding: 2px 8px; white-space: nowrap; }
+.g-done { font-weight: 800; flex: 1 1 100%; }
+.gcard .check { margin: 0; }
+
 [hidden] { display: none !important; }
 
 /* ---------- responsivo ---------- */
@@ -278,6 +299,8 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .92em; 
   .meta-row .tile { width: 40px; height: 40px; grid-row: span 2; }
   .fc-top .tile { width: 44px; height: 44px; }
   .files-bar .row { width: 100%; }
+  .g-row { grid-template-columns: 12px minmax(0, 1fr) auto; }
+  .g-size { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 .about .folder { cursor: default; }
