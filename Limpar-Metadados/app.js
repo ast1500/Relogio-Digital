@@ -507,7 +507,7 @@
   $('folderBtn').addEventListener('click', () => $('folderInput').click());
   $('folderInput').addEventListener('change', (e) => {
     const files = Array.from(e.target.files || []); e.target.value = '';
-    if (!files.length) return;
+    if (!files.length) return toast('Nenhum arquivo veio da pasta. No iPhone, entre na pasta antes de tocar em Abrir. Se não der, use "Selecionar vídeos".', true);
     const root = (files[0].webkitRelativePath || '').split('/')[0] || 'Pasta';
     addFolder(files.map((f) => ({ file: f, rel: f.webkitRelativePath || f.name })), root);
   });
@@ -517,7 +517,9 @@
     if (files.length) addFolder(files.map((f) => ({ file: f, rel: f.name })), 'Vídeos selecionados');
   });
   // "Importar pasta" funciona em todos os navegadores atuais, inclusive no iPhone/iPad (Safari 18.4+).
-  // A seleção de vários vídeos fica como alternativa para aparelhos mais antigos.
+  // No iPhone/iPad, o seletor de pastas confunde (os vídeos aparecem apagados), então mostramos o passo a passo.
+  const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  document.body.classList.add(isIOS ? 'is-ios' : 'not-ios');
 
   const dz = $('dropzone');
   ['dragenter', 'dragover'].forEach((ev) => document.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add('drag'); }));

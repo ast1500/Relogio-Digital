@@ -74,9 +74,15 @@
           <input id="folderInput" type="file" webkitdirectory directory multiple hidden>
           <input id="zipFilesInput" type="file" accept="video/*,.mov,.mp4,.m4v,.webm,.mkv,.3gp" multiple hidden>
           <button class="btn primary" id="folderBtn" type="button"><svg class="ic sm"><use href="#i-folder"/></svg> Importar pasta</button>
-          <button class="link-btn" id="zipPickBtn" type="button">iPhone antigo? Escolha vários vídeos</button>
+          <button class="btn" id="zipPickBtn" type="button"><svg class="ic sm"><use href="#i-film"/></svg> Selecionar vídeos</button>
         </div>
-        <p class="sub">No iPhone: toque em Importar pasta, entre na pasta (no app Arquivos) e toque em Abrir. No computador, também dá para arrastar a pasta para esta página.</p>
+        <ol class="ios-steps ios-only">
+          <li>Toque em <b>Importar pasta</b>.</li>
+          <li>No app Arquivos, <b>toque na pasta para entrar nela</b>. Os vídeos aparecem apagados: é normal, você está escolhendo a pasta inteira.</li>
+          <li>Toque em <b>Abrir</b>, no canto superior direito.</li>
+        </ol>
+        <p class="sub ios-only">Vídeos que estão só no app Fotos não aparecem nessa tela. Para eles, use <b>Selecionar vídeos</b> e marque vários de uma vez.</p>
+        <p class="sub desktop-only">Também dá para arrastar a pasta para esta página, ou usar <b>Selecionar vídeos</b> para escolher vários arquivos soltos.</p>
       </div>
     </section>
 
@@ -134,7 +140,7 @@
     </section>
 
     <footer class="app-foot">
-      Vídeo Limpo <b>v2.1.1</b> · código aberto (MIT) ·
+      Vídeo Limpo <b>v2.1.2</b> · código aberto (MIT) ·
       <a href="https://github.com/ast1500/Relogio-Digital" rel="noopener">GitHub</a>
     </footer>
   </div>
