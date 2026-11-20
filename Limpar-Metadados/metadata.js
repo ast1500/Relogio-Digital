@@ -11,8 +11,9 @@
  *                montado com Blob.slice(), então funciona mesmo com arquivos de vários GB.
  *
  * WebM / MKV (EBML):
- *   - analyze(): lê o bloco Info (título, app de gravação, data) e sinaliza Tags/Anexos.
- *   - Limpeza: feita pela exportação com re-codificação do editor.
+ *   - analyze(): título, apps de gravação, data, nomes de trilha, Tags (com nome e valor) e anexos.
+ *   - clean():   também sem re-codificar: Tags e anexos viram blocos Void, textos são zerados e a data é
+ *                apagada, sempre mantendo os tamanhos. Os Clusters (vídeo/áudio) são copiados sem tocar.
  *
  * Funciona no navegador (window.VideoMeta) e no Node 22+ (module.exports) para testes.
  */
@@ -318,7 +319,7 @@
     return { blob: new Blob(parts, { type: blob.type || 'video/mp4' }), removedBlocks: removed };
   }
 
-  // ---------- WebM / MKV (somente leitura) ----------
+  // ---------- WebM / MKV (EBML) ----------
 
   function ebmlVint(b, o, keepMarker) {
     const first = b[o]; if (first === undefined) return null;
@@ -330,38 +331,152 @@
     return { val, len, unknown: !keepMarker && allOnes };
   }
 
+  const EB = {
+    EBML: 0x1a45dfa3, SEGMENT: 0x18538067, CLUSTER: 0x1f43b675, INFO: 0x1549a966, TAGS: 0x1254c367,
+    ATTACH: 0x1941a469, TRACKS: 0x1654ae6b, TRACKENTRY: 0xae, TITLE: 0x7ba9, MUX: 0x4d80, WRITE: 0x5741,
+    DATE: 0x4461, TRACKNAME: 0x536e, TAG: 0x7373, SIMPLETAG: 0x67c8, TAGNAME: 0x45a3, TAGSTRING: 0x4487, VOID: 0xec,
+  };
+  const WEBM_LOADED = new Set([EB.INFO, EB.TRACKS, EB.TAGS]);       // blocos lidos para a memória (pequenos)
+  const WEBM_VOIDED = new Set([EB.TAGS, EB.ATTACH]);                // blocos apagados por inteiro
+
+  /** Elementos filhos dentro de b[start..end). */
+  function ebmlChildren(b, start, end) {
+    const out = []; let o = start;
+    while (o < end) {
+      const id = ebmlVint(b, o, true); if (!id) break;
+      const sz = ebmlVint(b, o + id.len, false); if (!sz) break;
+      const ds = o + id.len + sz.len, de = sz.unknown ? end : ds + sz.val;
+      if (de > end) break;
+      out.push({ id: id.val, start: o, ds, de });
+      o = de;
+    }
+    return out;
+  }
+
+  /**
+   * Percorre os filhos do Segment lendo só cabeçalhos (os Clusters, que são o vídeo, nunca são carregados).
+   * Para num Cluster de tamanho desconhecido (comum em gravações ao vivo): o que vem depois é só vídeo.
+   */
+  async function scanWebm(blob) {
+    const h = await readRange(blob, 0, Math.min(blob.size, 64));
+    const eId = ebmlVint(h, 0, true), eSz = eId && ebmlVint(h, eId.len, false);
+    if (!eSz || eId.val !== EB.EBML) return null;
+    let o = eId.len + eSz.len + eSz.val;
+    const sh = await readRange(blob, o, Math.min(blob.size, o + 16));
+    const sId = ebmlVint(sh, 0, true), sSz = sId && ebmlVint(sh, sId.len, false);
+    if (!sSz || sId.val !== EB.SEGMENT) return null;
+    const segEnd = sSz.unknown ? blob.size : Math.min(blob.size, o + sId.len + sSz.len + sSz.val);
+    o += sId.len + sSz.len;
+    const children = []; let partial = false;
+    while (o + 2 <= segEnd) {
+      const b = await readRange(blob, o, Math.min(segEnd, o + 16));
+      const id = ebmlVint(b, 0, true), sz = id && ebmlVint(b, id.len, false);
+      if (!sz) break;
+      const ds = o + id.len + sz.len;
+      if (sz.unknown) { if (id.val !== EB.CLUSTER) partial = true; break; }
+      const de = ds + sz.val;
+      if (de > segEnd) break;
+      const child = { id: id.val, start: o, ds, de };
+      if (WEBM_LOADED.has(id.val)) child.bytes = await readRange(blob, o, de);
+      children.push(child);
+      o = de;
+    }
+    return { children, partial };
+  }
+
+  function tagLabel(name) { return KEY_LABELS[name.toLowerCase()] || KEY_LABELS[name] || name; }
+
   async function analyzeWebm(blob) {
-    const b = await readRange(blob, 0, Math.min(blob.size, 8 * 1024 * 1024));
+    const scan = await scanWebm(blob);
+    if (!scan) return { format: 'unknown', findings: [], cleanable: false };
     const findings = [];
-    const add = (label, value, category, severity) => findings.push({ key: label, label, value: String(value), where: 'arquivo', category, severity, removable: true });
-    const IDS = { SEGMENT: 0x18538067, INFO: 0x1549a966, TAGS: 0x1254c367, ATTACH: 0x1941a469, TITLE: 0x7ba9, MUX: 0x4d80, WRITE: 0x5741, DATE: 0x4461, TRACKS: 0x1654ae6b, TRACKNAME: 0x536e, TRACKENTRY: 0xae };
-    function walk(o, end, depth) {
-      while (o < end) {
-        const id = ebmlVint(b, o, true); if (!id) return; const sz = ebmlVint(b, o + id.len, false); if (!sz) return;
-        const ds = o + id.len + sz.len; const de = sz.unknown ? end : Math.min(end, ds + sz.val);
-        switch (id.val) {
-          case IDS.SEGMENT: case IDS.TRACKS: case IDS.TRACKENTRY: walk(ds, de, depth + 1); break;
-          case IDS.INFO: walk(ds, de, depth + 1); break;
-          case IDS.TITLE: add('Título', str(b, ds, de), 'Autoria', 'média'); break;
-          case IDS.MUX: add('Aplicativo de multiplexação', str(b, ds, de), 'Software', 'baixa'); break;
-          case IDS.WRITE: add('Aplicativo de gravação', str(b, ds, de), 'Software', 'baixa'); break;
-          case IDS.TRACKNAME: add('Nome da trilha', str(b, ds, de), 'Outros', 'baixa'); break;
-          case IDS.DATE: {
-            // nanossegundos desde 2001-01-01 (inteiro de 8 bytes com sinal)
-            const ns = new DataView(b.buffer, b.byteOffset + ds, 8).getBigInt64(0);
-            add('Data de criação', fmtDate(new Date(Date.UTC(2001, 0, 1) + Number(ns / 1000000n))), 'Data', 'média');
-            break;
+    const add = (key, label, value, category, severity) => {
+      if (value === '') return; // campo já zerado
+      findings.push({ key, label, value: String(value), where: 'arquivo', category, severity, removable: true });
+    };
+    for (const c of scan.children) {
+      const b = c.bytes, rel = (x) => x - c.start;
+      if (c.id === EB.INFO) {
+        for (const e of ebmlChildren(b, rel(c.ds), b.length)) {
+          if (e.id === EB.TITLE) add('title', 'Título', str(b, e.ds, e.de), 'Autoria', 'média');
+          else if (e.id === EB.MUX) add('mux', 'Aplicativo de multiplexação', str(b, e.ds, e.de), 'Software', 'baixa');
+          else if (e.id === EB.WRITE) add('write', 'Aplicativo de gravação', str(b, e.ds, e.de), 'Software', 'baixa');
+          else if (e.id === EB.DATE && e.de - e.ds === 8) {
+            const ns = new DataView(b.buffer, b.byteOffset + e.ds, 8).getBigInt64(0); // ns desde 2001-01-01
+            add('date', 'Data de criação', fmtDate(new Date(Date.UTC(2001, 0, 1) + Number(ns / 1000000n))), 'Data', 'média');
           }
-          case IDS.TAGS: add('Tags (metadados livres)', (de - ds) + ' bytes', 'Outros', 'média'); break;
-          case IDS.ATTACH: add('Anexos embutidos', (de - ds) + ' bytes', 'Outros', 'média'); break;
         }
-        if (sz.unknown && id.val !== IDS.SEGMENT) return;
-        o = de;
+      } else if (c.id === EB.TRACKS) {
+        for (const t of ebmlChildren(b, rel(c.ds), b.length)) {
+          if (t.id !== EB.TRACKENTRY) continue;
+          for (const e of ebmlChildren(b, t.ds, t.de)) if (e.id === EB.TRACKNAME) add('trackname', 'Nome da trilha', str(b, e.ds, e.de), 'Outros', 'baixa');
+        }
+      } else if (c.id === EB.TAGS) {
+        let n = 0;
+        for (const tag of ebmlChildren(b, rel(c.ds), b.length)) {
+          if (tag.id !== EB.TAG) continue;
+          for (const st of ebmlChildren(b, tag.ds, tag.de)) {
+            if (st.id !== EB.SIMPLETAG) continue;
+            let name = '', value = '';
+            for (const e of ebmlChildren(b, st.ds, st.de)) {
+              if (e.id === EB.TAGNAME) name = str(b, e.ds, e.de);
+              else if (e.id === EB.TAGSTRING) value = str(b, e.ds, e.de);
+            }
+            if (!name) continue;
+            const label = tagLabel(name), cl = classify(name, label);
+            add('tag.' + name, label, value || '[vazio]', cl.category, cl.severity); n++;
+          }
+        }
+        if (!n) add('tags', 'Tags (metadados livres)', (c.de - c.ds) + ' bytes', 'Outros', 'média');
+      } else if (c.id === EB.ATTACH) {
+        add('attach', 'Anexos embutidos', (c.de - c.ds) + ' bytes', 'Outros', 'média');
       }
     }
-    const header = ebmlVint(b, 0, true); const hs = header && ebmlVint(b, header.len, false);
-    if (hs) walk(header.len + hs.len + hs.val, b.length, 0);
-    return { format: 'webm', findings, cleanable: false };
+    return { format: 'webm', findings, cleanable: true, partial: scan.partial };
+  }
+
+  /** Cabeçalho de um elemento Void (ignorado pelos players) que ocupa exatamente `total` bytes. */
+  function voidHeader(total) {
+    const h = new Uint8Array(Math.min(total, 9));
+    h[0] = EB.VOID;
+    if (total >= 9) {          // tamanho em 8 bytes: 0x01 + 7 bytes
+      h[1] = 0x01; const n = total - 9;
+      for (let i = 0; i < 7; i++) h[8 - i] = Math.floor(n / Math.pow(256, i)) & 255;
+    } else h[1] = 0x80 | (total - 2);
+    return h;
+  }
+  function writeVoid(b, start, len) { if (len < 2) return; b.fill(0, start, start + len); b.set(voidHeader(len), start); }
+
+  async function cleanWebm(blob) {
+    const scan = await scanWebm(blob);
+    if (!scan) throw new Error('Arquivo WebM/MKV inválido.');
+    const parts = []; let cursor = 0, removed = 0;
+    for (const c of scan.children) {
+      const total = c.de - c.start;
+      if (WEBM_VOIDED.has(c.id)) {
+        // Cabeçalho de Void + zeros, sem carregar o conteúdo original (anexos podem ser grandes)
+        const head = voidHeader(total);
+        parts.push(blob.slice(cursor, c.start), head, new Uint8Array(total - head.length));
+        cursor = c.de; removed++;
+      } else if (c.id === EB.INFO || c.id === EB.TRACKS) {
+        const b = c.bytes, rel = (x) => x - c.start; let touched = false;
+        const scrub = (e, voidIt) => { if (voidIt) writeVoid(b, e.start, e.de - e.start); else b.fill(0, e.ds, e.de); touched = true; removed++; };
+        if (c.id === EB.INFO) {
+          for (const e of ebmlChildren(b, rel(c.ds), b.length)) {
+            if (e.id === EB.TITLE || e.id === EB.MUX || e.id === EB.WRITE) scrub(e, false); // texto vira vazio
+            else if (e.id === EB.DATE) scrub(e, true);
+          }
+        } else {
+          for (const t of ebmlChildren(b, rel(c.ds), b.length)) {
+            if (t.id !== EB.TRACKENTRY) continue;
+            for (const e of ebmlChildren(b, t.ds, t.de)) if (e.id === EB.TRACKNAME) scrub(e, false);
+          }
+        }
+        if (touched) { parts.push(blob.slice(cursor, c.start), b); cursor = c.de; }
+      }
+    }
+    parts.push(blob.slice(cursor));
+    return { blob: new Blob(parts, { type: blob.type || 'video/webm' }), removedBlocks: removed };
   }
 
   // ---------- API pública ----------
@@ -373,9 +488,12 @@
     return { format: 'unknown', findings: [], cleanable: false };
   }
 
+  /** Remove os metadados sem re-codificar (MP4/MOV/M4V/3GP e WebM/MKV). */
   async function clean(blob) {
-    if ((await sniff(blob)) !== 'mp4') throw new Error('Limpeza sem re-codificação só está disponível para MP4/MOV.');
-    return cleanMp4(blob);
+    const fmt = await sniff(blob);
+    if (fmt === 'mp4') return cleanMp4(blob);
+    if (fmt === 'webm') return cleanWebm(blob);
+    throw new Error('Formato não suportado para limpeza sem re-codificação. Use a limpeza profunda.');
   }
 
   const api = { analyze, clean, sniff };

@@ -3,9 +3,29 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [2.0.0] - 2026-11-20
+
+O projeto passa a se chamar **Vídeo Limpo** e faz uma coisa só: **remover os metadados** dos vídeos.
+
+### Removido
+- O editor (legendas, estilos, fontes, cortes, velocidade e volume) e as fontes incluídas.
+
+### Adicionado
+- **Limpeza rápida de WebM/MKV sem re-codificar**: tags (com nome e valor, como GPS, autor e comentário), título,
+  apps de gravação, data, nomes de trilha e anexos são removidos; os blocos de vídeo ficam idênticos.
+- **Vários vídeos de uma vez**, com análise individual e o botão "Limpar todos".
+- **Limpeza profunda** (re-codifica o vídeo do zero, sem edição) para o que a rápida não alcança:
+  trilhas de telemetria GPS (GoPro, drones) e formatos desconhecidos.
+- Verificação automática depois de cada limpeza ("0 restantes").
+
+### Alterado
+- Novo endereço: `Limpar-Metadados/`. O antigo `Editor-de-Video/` redireciona para ele.
+- O site passa a ser publicado direto da branch `main` (o workflow de Pages foi removido).
+- Testes ampliados para WebM/MKV (12 testes).
+
 ## [1.0.0] - 2026-11-20
 
-Primeira versão do **Editor Limpo**.
+Primeira versão, como **Editor Limpo** (editor de vídeo com limpeza de metadados).
 
 ### Legendas
 - Legendas com tempo de início e fim, criadas no ponto atual do vídeo.
@@ -34,4 +54,5 @@ Primeira versão do **Editor Limpo**.
 - Publicação automática no GitHub Pages e criação de Release a cada tag `v*`.
 - Licença MIT.
 
+[2.0.0]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.0.0
 [1.0.0]: https://github.com/ast1500/Relogio-Digital/releases/tag/v1.0.0
