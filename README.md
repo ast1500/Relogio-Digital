@@ -6,7 +6,7 @@
 Nenhum arquivo sai do seu computador.
 
 [![Testes](https://github.com/ast1500/Relogio-Digital/actions/workflows/ci.yml/badge.svg)](https://github.com/ast1500/Relogio-Digital/actions/workflows/ci.yml)
-[![Versão](https://img.shields.io/badge/vers%C3%A3o-2.2.0-ffd23f)](CHANGELOG.md)
+[![Versão](https://img.shields.io/badge/vers%C3%A3o-2.2.1-ffd23f)](CHANGELOG.md)
 [![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-7b6cf6)](LICENSE)
 
 [**Abrir o Vídeo Limpo**](https://ast1500.github.io/Relogio-Digital/Limpar-Metadados/) · [Histórico de versões](CHANGELOG.md)
@@ -63,7 +63,8 @@ pela API, e o Instagram não tem agendamento nativo. Detalhes em [docs/AGENDAMEN
 **Configuração (uma vez):** crie um app em [developers.facebook.com](https://developers.facebook.com) (tipo Empresa),
 adicione o Login do Facebook para Empresas com as permissões `pages_show_list`, `pages_read_engagement`,
 `pages_manage_posts` e `publish_video`, autorize o domínio `ast1500.github.io` e coloque o **App ID** em
-`Limpar-Metadados/config.js` (ou informe na própria tela). Para usar só nas suas Páginas, o app pode ficar em modo de
+`Limpar-Metadados/config.js` (ou informe na própria tela). Se o app usa o **Login do Facebook para Empresas**, crie uma
+*configuração* (tipo "token de acesso do usuário", com as mesmas permissões) e informe também o **ID da configuração**. Para usar só nas suas Páginas, o app pode ficar em modo de
 desenvolvimento, sem revisão da Meta. **Nunca** coloque o App Secret no código.
 
 ### No seu computador

@@ -3,6 +3,15 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [2.2.1] - 2026-11-20
+
+### Adicionado
+- Suporte ao **Login do Facebook para Empresas**: campo "ID da configuração" (também em `config.js`).
+- Depois do login, o app confere as permissões concedidas e explica o que falta (ex.: `pages_manage_posts`).
+
+### Corrigido
+- Trocar o App ID sem recarregar a página agora reconfigura o login do Facebook.
+
 ## [2.2.0] - 2026-11-20
 
 ### Adicionado
@@ -97,6 +106,7 @@ Primeira versão, como **Editor Limpo** (editor de vídeo com limpeza de metadad
 - Publicação automática no GitHub Pages e criação de Release a cada tag `v*`.
 - Licença MIT.
 
+[2.2.1]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.2.1
 [2.2.0]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.2.0
 [2.1.2]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.1.2
 [2.1.1]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.1.1
