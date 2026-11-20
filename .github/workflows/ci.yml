@@ -23,3 +23,6 @@ jobs:
           node --check Limpar-Metadados/app.js
           node --check Limpar-Metadados/metadata.js
           node --check Limpar-Metadados/zip.js
+          node --check Limpar-Metadados/schedule.js
+          node --check Limpar-Metadados/facebook.js
+          node --check Limpar-Metadados/scheduler.js

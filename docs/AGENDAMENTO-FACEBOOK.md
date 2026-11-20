@@ -1,6 +1,7 @@
 # Agendar no Facebook: especificação
 
-> Status: **proposta**. Nada disto está implementado ainda.
+> Status: **fase 1 implementada na versão 2.2.0** (vídeos e Reels, com modo simulação). Falta testar com uma conta real
+> do Facebook depois de configurar o App ID. Itens da fase 2 incluídos já na 2.2.0: Reels e planilha CSV.
 
 ## 1. A ideia
 

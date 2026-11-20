@@ -2,11 +2,11 @@
 
 # 🛡️ Vídeo Limpo
 
-**Remova GPS, modelo do aparelho, datas e outros metadados dos seus vídeos, direto no navegador.**
+**Remova GPS, modelo do aparelho, datas e outros metadados dos seus vídeos, direto no navegador. Depois, agende tudo na sua Página do Facebook.**
 Nenhum arquivo sai do seu computador.
 
 [![Testes](https://github.com/ast1500/Relogio-Digital/actions/workflows/ci.yml/badge.svg)](https://github.com/ast1500/Relogio-Digital/actions/workflows/ci.yml)
-[![Versão](https://img.shields.io/badge/vers%C3%A3o-2.1.2-ffd23f)](CHANGELOG.md)
+[![Versão](https://img.shields.io/badge/vers%C3%A3o-2.2.0-ffd23f)](CHANGELOG.md)
 [![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-7b6cf6)](LICENSE)
 
 [**Abrir o Vídeo Limpo**](https://ast1500.github.io/Relogio-Digital/Limpar-Metadados/) · [Histórico de versões](CHANGELOG.md)
@@ -47,6 +47,25 @@ telemetria GPS de GoPros e drones e formatos desconhecidos. Leva o tempo de dura
 
 Depois de cada limpeza, o arquivo é analisado de novo para confirmar que não sobrou nada ("0 restantes").
 
+### Agendar no Facebook
+
+Depois de limpar uma pasta (ou vídeos soltos), toque em **Agendar no Facebook**:
+
+1. **Conectar a Página**: "Entrar com Facebook" e escolha a Página (ou teste no **modo simulação**).
+2. **Preencher em massa**: legenda modelo (`Parte {n} da viagem ✈️`), hashtags e conjuntos salvos, distribuir datas
+   (ex.: 2 por dia às 12:00 e 19:00, de segunda a sexta), tipo (Vídeo ou Reel) e planilha CSV.
+3. **Revisar cada vídeo**: dá para editar tudo individualmente; problemas aparecem na hora.
+4. **Agendar**: os vídeos sobem já limpos e ficam guardados no Facebook, que publica cada um na hora marcada.
+
+Funciona com **Páginas** do Facebook (vídeos e Reels). A Meta não permite publicar em perfis pessoais nem em grupos
+pela API, e o Instagram não tem agendamento nativo. Detalhes em [docs/AGENDAMENTO-FACEBOOK.md](docs/AGENDAMENTO-FACEBOOK.md).
+
+**Configuração (uma vez):** crie um app em [developers.facebook.com](https://developers.facebook.com) (tipo Empresa),
+adicione o Login do Facebook para Empresas com as permissões `pages_show_list`, `pages_read_engagement`,
+`pages_manage_posts` e `publish_video`, autorize o domínio `ast1500.github.io` e coloque o **App ID** em
+`Limpar-Metadados/config.js` (ou informe na própria tela). Para usar só nas suas Páginas, o app pode ficar em modo de
+desenvolvimento, sem revisão da Meta. **Nunca** coloque o App Secret no código.
+
 ### No seu computador
 
 ```bash
@@ -67,10 +86,15 @@ Relogio-Digital/
 │   ├── style.css         visual
 │   ├── app.js            lista de arquivos, pastas → .zip, limpeza rápida e profunda
 │   ├── metadata.js       leitura e limpeza de metadados (também roda no Node)
-│   └── zip.js            gerador de .zip sem bibliotecas (ZIP64, nomes UTF-8, data fixa)
+│   ├── zip.js            gerador de .zip sem bibliotecas (ZIP64, nomes UTF-8, data fixa)
+│   ├── schedule.js       regras do agendamento: hashtags, modelos, datas, validações, CSV
+│   ├── facebook.js       conexão com a Graph API (e o modo simulação)
+│   ├── scheduler.js      tela "Agendar no Facebook"
+│   └── config.js         App ID público do Facebook
 ├── Editor-de-Video/      redireciona para Limpar-Metadados/ (endereço da v1)
 ├── Relógio-Digital/      o relógio digital original
-├── tests/                testes do limpador (com vídeos de exemplo)
+├── docs/                 especificações (ex.: agendamento no Facebook)
+├── tests/                testes (limpador, .zip, agendamento, Graph API)
 └── index.html            página inicial do site
 ```
 
@@ -87,7 +111,7 @@ Relogio-Digital/
 ## Desenvolvimento
 
 ```bash
-npm test     # 15 testes: limpador de metadados e gerador de .zip (Node 22+)
+npm test     # 31 testes: limpador, .zip, regras de agendamento e chamadas à Graph API (Node 22+)
 ```
 
 Os vídeos em `tests/fixtures/` têm metadados **falsos** (GPS de pontos turísticos), gerados com `ffmpeg` só para teste.

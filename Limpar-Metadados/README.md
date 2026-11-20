@@ -8,6 +8,10 @@ Veja o [README principal](../README.md) para detalhes.
 | `index.html` | Interface |
 | `style.css` | Visual neo-brutalista (contornos grossos, sombras sólidas, cartões em forma de pasta) |
 | `app.js` | Lista de arquivos, pastas → .zip (até 100 vídeos), limpeza rápida, limpeza profunda e downloads |
+| `schedule.js` | Regras do agendamento: hashtags, legenda modelo, distribuição de datas, validações e CSV |
+| `facebook.js` | Graph API (vídeos em partes, Reels agendados, login sob demanda) e modo simulação |
+| `scheduler.js` | Tela "Agendar no Facebook" |
+| `config.js` | App ID público do Facebook |
 | `zip.js` | Gerador de .zip sem bibliotecas: sem compressão, ZIP64, nomes UTF-8, data fixa |
 | `metadata.js` | Análise e limpeza sem re-codificar de MP4/MOV/M4V/3GP e WebM/MKV. Funciona também no Node |
 | `favicon.svg` | Ícone |
