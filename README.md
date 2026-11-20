@@ -6,7 +6,7 @@
 Nenhum arquivo sai do seu computador.
 
 [![Testes](https://github.com/ast1500/Relogio-Digital/actions/workflows/ci.yml/badge.svg)](https://github.com/ast1500/Relogio-Digital/actions/workflows/ci.yml)
-[![Versão](https://img.shields.io/badge/vers%C3%A3o-2.3.1-ffd23f)](CHANGELOG.md)
+[![Versão](https://img.shields.io/badge/vers%C3%A3o-2.3.2-ffd23f)](CHANGELOG.md)
 [![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-7b6cf6)](LICENSE)
 
 [**Abrir o Vídeo Limpo**](https://ast1500.github.io/Relogio-Digital/Limpar-Metadados/) · [Histórico de versões](CHANGELOG.md)
@@ -49,17 +49,13 @@ Depois de cada limpeza, o arquivo é analisado de novo para confirmar que não s
 
 ### Agendar no Facebook
 
-Depois de limpar uma pasta (ou vídeos soltos), toque em **Agendar no Facebook**. A tela é dividida em etapas:
+Depois de limpar uma pasta (ou vídeos soltos), toque em **Agendar no Facebook**:
 
-1. **Conectar**: "Entrar com Facebook" e escolha a Página (ou teste no **modo simulação**).
-2. **Legendas**: cole uma lista (uma por linha, ou separadas por linha em branco) e toque em **🎲 Sortear para todos**
-   ou **Usar na ordem**. Aceita `{n}` e `{nome}`.
-3. **Hashtags**: uma lista para sortear, **quantas por post** e hashtags **fixas** que vão em todos.
-4. **Horários**: primeiro post + intervalo (padrão: **a cada 10 minutos**). Todos os horários ficam em passos de 10 minutos.
-5. **Revisar**: cada post tem botões **🎲** para sortear outra legenda ou outras hashtags só para ele.
-6. **Agendar**: os vídeos sobem já limpos e o Facebook publica cada um na hora marcada.
-
-Em **Avançado** ficam o tipo de post (Vídeo/Reel), o título e a planilha CSV.
+1. **Conectar a Página**: "Entrar com Facebook" e escolha a Página (ou teste no **modo simulação**).
+2. **Preencher em massa**: legenda modelo (`Parte {n} da viagem ✈️`), hashtags e conjuntos salvos, distribuir datas
+   (ex.: 2 por dia às 12:00 e 19:00, de segunda a sexta), tipo (Vídeo ou Reel) e planilha CSV.
+3. **Revisar cada vídeo**: dá para editar tudo individualmente; problemas aparecem na hora.
+4. **Agendar**: os vídeos sobem já limpos e ficam guardados no Facebook, que publica cada um na hora marcada.
 
 Funciona com **Páginas** do Facebook (vídeos e Reels). A Meta não permite publicar em perfis pessoais nem em grupos
 pela API, e o Instagram não tem agendamento nativo. Detalhes em [docs/AGENDAMENTO-FACEBOOK.md](docs/AGENDAMENTO-FACEBOOK.md).
