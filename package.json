@@ -1,0 +1,16 @@
+{
+  "name": "relogio-digital",
+  "version": "1.0.0",
+  "description": "Editor Limpo: legendas, cortes, velocidade e limpeza de metadados de vídeo no navegador. Inclui também o Relógio Digital.",
+  "private": true,
+  "license": "MIT",
+  "author": "ast1500",
+  "repository": { "type": "git", "url": "https://github.com/ast1500/Relogio-Digital.git" },
+  "homepage": "https://ast1500.github.io/Relogio-Digital/",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "start": "python3 -m http.server 8000"
+  },
+  "keywords": ["video", "editor", "legendas", "metadados", "privacidade", "gps", "exif", "browser"]
+}
