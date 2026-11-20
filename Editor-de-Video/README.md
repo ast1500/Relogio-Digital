@@ -1,6 +1,6 @@
 # Editor Limpo 🎬🔒
 
-Editor de vídeo que roda **inteiro no navegador** e **remove os metadados** (GPS, aparelho, datas, software).
+Coloque **legendas estilizadas**, faça **cortes**, **acelere** e **remova os metadados** (GPS, aparelho, datas, software) do seu vídeo, tudo **dentro do navegador**.
 Nenhum arquivo é enviado para servidores.
 
 ## Como usar
@@ -13,13 +13,18 @@ python3 -m http.server 8000   # depois abra http://localhost:8000
 ```
 
 1. Arraste um vídeo para a página.
-2. Veja em **Metadados encontrados** tudo o que o arquivo revela.
-3. Escolha:
-   - **⚡ Limpar sem re-codificar**: baixa o mesmo vídeo, com a mesma qualidade, sem os metadados (MP4/MOV).
-   - **Editar e ⬇ Exportar**: corte, enquadramento, giro, cores, velocidade, volume, texto e áreas pixeladas.
-     O arquivo final é gerado do zero, sem nada do original.
+2. **Legendas**: vá até o momento da fala e toque em **Adicionar no ponto atual**. Ajuste início e fim
+   (o botão de relógio usa a posição atual). Também dá para importar e baixar arquivos `.srt`.
+3. **Estilo da legenda**: escolha um estilo pronto (o "Amarelo" é a caixa amarela com letras pretas) ou personalize
+   a fonte (9 opções, incluídas na pasta `fonts/`), o tamanho, a cor, MAIÚSCULAS, o **fundo atrás das letras**
+   (caixa única, uma caixa por linha ou sem fundo; cor, opacidade, arredondamento e espaço interno), o contorno,
+   a sombra e a posição.
+4. **Cortes**: **Dividir aqui** separa o vídeo na posição atual; toque num trecho e use **Remover trecho**.
+5. **Velocidade**: de 0,5× a 3×.
+6. **Exportar vídeo**: sai com tudo aplicado e **sem nenhum metadado** do original.
+   Ou use **Limpar sem editar** para só tirar os metadados do arquivo original, sem perder qualidade.
 
-Atalhos: `espaço` reproduz/pausa · `I`/`O` marcam início/fim · `←`/`→` avançam quadro a quadro (`Shift` = 5 s).
+Atalhos: `espaço` reproduz/pausa · `L` nova legenda · `S` divide · `Delete` remove o trecho · `←`/`→` quadro a quadro (`Shift` = 5 s).
 
 ## Arquivos
 
@@ -27,7 +32,8 @@ Atalhos: `espaço` reproduz/pausa · `I`/`O` marcam início/fim · `←`/`→` a
 |---|---|
 | `index.html` | Interface |
 | `style.css` | Visual (mesma paleta do Relógio Digital) |
-| `app.js` | Editor: prévia em Canvas, Web Audio, exportação com MediaRecorder |
+| `app.js` | Editor: legendas, cortes, velocidade, prévia em Canvas, exportação com MediaRecorder |
+| `fonts/` | Fontes das legendas (locais, licenças em `fonts/LICENCAS.md`) |
 | `metadata.js` | Leitura e limpeza de metadados MP4/MOV (e leitura de WebM). Funciona também no Node |
 | `IDEIA.md` | A ideia em detalhe: problema, público, arquitetura, limitações e roadmap |
 
