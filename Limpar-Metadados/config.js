@@ -5,7 +5,7 @@
  * NUNCA coloque o App Secret aqui.
  */
 window.VIDEO_LIMPO_CONFIG = {
-  facebookAppId: '',
+  facebookAppId: '1091447947204742',
   // ID da configuração do "Login do Facebook para Empresas" (Login do Facebook para Empresas → Configurações).
-  facebookConfigId: '',
+  facebookConfigId: '1461230332798562',
 };

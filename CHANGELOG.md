@@ -3,6 +3,11 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [2.2.3] - 2026-11-20
+
+### Alterado
+- App ID e ID da configuração do Facebook já vêm configurados no site (`config.js`): não é preciso digitar nada para entrar.
+
 ## [2.2.2] - 2026-11-20
 
 ### Corrigido
@@ -112,6 +117,7 @@ Primeira versão, como **Editor Limpo** (editor de vídeo com limpeza de metadad
 - Publicação automática no GitHub Pages e criação de Release a cada tag `v*`.
 - Licença MIT.
 
+[2.2.3]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.2.3
 [2.2.2]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.2.2
 [2.2.1]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.2.1
 [2.2.0]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.2.0
