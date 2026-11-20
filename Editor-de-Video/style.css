@@ -408,6 +408,9 @@ input[type=range]:active::-webkit-slider-thumb { background: var(--pink); }
 .panel-head .sub { max-width: 560px; }
 .btn:disabled:active { transform: none; }
 
+.app-foot { margin-top: 28px; text-align: center; font-size: 13px; font-weight: 600; color: var(--muted); }
+.app-foot a { color: var(--ink); font-weight: 800; }
+
 [hidden] { display: none !important; }
 
 /* ---------- responsivo ---------- */

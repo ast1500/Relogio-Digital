@@ -1,0 +1,39 @@
+name: Criar Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Notas da versão a partir do CHANGELOG
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" {on=1; next}
+            on && /^## \[/ {exit}
+            on && /^\[[0-9.]+\]:/ {exit}
+            on {print}
+          ' CHANGELOG.md > notes.md
+          printf '\n---\n**Abrir online:** https://%s.github.io/%s/Editor-de-Video/\n' \
+            "${GITHUB_REPOSITORY_OWNER}" "${GITHUB_REPOSITORY#*/}" >> notes.md
+          cat notes.md
+      - name: Pacote para usar offline
+        run: |
+          mkdir pacote
+          cp -r Editor-de-Video LICENSE pacote/
+          (cd pacote && zip -r "../editor-limpo-${GITHUB_REF_NAME}.zip" .)
+      - name: Publicar a Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "editor-limpo-${GITHUB_REF_NAME}.zip" \
+            --title "Editor Limpo ${GITHUB_REF_NAME}" \
+            --notes-file notes.md \
+            --verify-tag

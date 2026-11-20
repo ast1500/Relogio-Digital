@@ -1,0 +1,20 @@
+# sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# editores
+.vscode/
+.idea/
+*.swp
+
+# node
+node_modules/
+npm-debug.log*
+
+# vídeos de teste locais (os de tests/fixtures/ são versionados de propósito)
+*.mp4
+*.mov
+*.webm
+*.mkv
+!tests/fixtures/*

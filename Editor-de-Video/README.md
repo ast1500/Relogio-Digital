@@ -31,7 +31,8 @@ Atalhos: `espaço` reproduz/pausa · `L` nova legenda · `S` divide · `Delete` 
 | Arquivo | O que faz |
 |---|---|
 | `index.html` | Interface |
-| `style.css` | Visual (mesma paleta do Relógio Digital) |
+| `style.css` | Visual neo-brutalista (contornos grossos, sombras sólidas, cartões em forma de pasta) |
+| `favicon.svg` | Ícone |
 | `app.js` | Editor: legendas, cortes, velocidade, prévia em Canvas, exportação com MediaRecorder |
 | `fonts/` | Fontes das legendas (locais, licenças em `fonts/LICENCAS.md`) |
 | `metadata.js` | Leitura e limpeza de metadados MP4/MOV (e leitura de WebM). Funciona também no Node |
