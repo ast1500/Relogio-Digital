@@ -1,6 +1,6 @@
 {
   "name": "relogio-digital",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "description": "Vídeo Limpo: remove metadados de vídeos no navegador e agenda vídeos em massa na Página do Facebook. Inclui também o Relógio Digital.",
   "private": true,
   "license": "MIT",

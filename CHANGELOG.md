@@ -3,6 +3,13 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [2.3.2] - 2026-11-20
+
+### Alterado
+- **De volta ao layout e à tela de agendamento da versão 2.2.5**, a pedido.
+- Mantida a correção de login da 2.3.1 (reaproveitar a autorização do Facebook em vez de abrir a janela de novo,
+  que no celular caía em "Este fluxo não é compatível com dispositivos móveis").
+
 ## [2.3.1] - 2026-11-20
 
 ### Corrigido
@@ -152,6 +159,7 @@ Primeira versão, como **Editor Limpo** (editor de vídeo com limpeza de metadad
 - Publicação automática no GitHub Pages e criação de Release a cada tag `v*`.
 - Licença MIT.
 
+[2.3.2]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.3.2
 [2.3.1]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.3.1
 [2.3.0]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.3.0
 [2.2.5]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.2.5
