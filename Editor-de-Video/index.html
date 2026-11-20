@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
+  <title>Editor Limpo</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">▶</span>
+      <div>
+        <h1>Editor Limpo</h1>
+        <p>Edite vídeos e remova metadados. Nada sai do seu computador.</p>
+      </div>
+    </div>
+    <span class="badge-offline" title="Todo o processamento acontece no navegador. Nenhum arquivo é enviado para servidores.">🔒 100% local</span>
+  </header>
+
+  <!-- Tela inicial: escolher arquivo -->
+  <section id="dropzone" class="dropzone">
+    <input id="fileInput" type="file" accept="video/*,.mov,.mp4,.m4v,.webm,.mkv,.3gp" hidden>
+    <div class="drop-inner">
+      <div class="drop-icon" aria-hidden="true">🎬</div>
+      <h2>Arraste um vídeo aqui</h2>
+      <p>ou</p>
+      <button class="btn primary" id="pickBtn" type="button">Escolher arquivo</button>
+      <p class="hint">MP4, MOV, M4V, 3GP, WebM. O arquivo é lido só na memória do navegador.</p>
+    </div>
+  </section>
+
+  <main id="workspace" class="workspace" hidden>
+    <!-- Coluna principal: prévia + linha do tempo -->
+    <section class="stage">
+      <div class="preview-wrap">
+        <canvas id="preview" aria-label="Prévia do vídeo editado"></canvas>
+        <video id="video" playsinline preload="auto" hidden></video>
+        <div id="exportOverlay" class="export-overlay" hidden>
+          <div class="export-box">
+            <p id="exportStatus">Exportando…</p>
+            <div class="progress"><div id="exportBar"></div></div>
+            <button class="btn" id="cancelExport" type="button">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="transport">
+        <button class="btn icon" id="playBtn" type="button" title="Reproduzir / pausar (espaço)">▶</button>
+        <span class="time" id="timeLabel">00:00.0 / 00:00.0</span>
+        <input type="range" id="seek" min="0" max="1000" value="0" step="1" aria-label="Posição">
+      </div>
+
+      <div class="timeline card">
+        <div class="trim-head">
+          <h3>Cortar</h3>
+          <span class="muted" id="trimInfo">Duração final: —</span>
+        </div>
+        <div class="trim-track" id="trimTrack">
+          <div class="trim-sel" id="trimSel"></div>
+          <div class="trim-cursor" id="trimCursor"></div>
+        </div>
+        <div class="trim-controls">
+          <label>Início <input type="number" id="trimStart" min="0" step="0.1" value="0"></label>
+          <button class="btn small" id="setStart" type="button" title="Usar a posição atual como início (I)">⇤ Marcar início</button>
+          <button class="btn small" id="setEnd" type="button" title="Usar a posição atual como fim (O)">Marcar fim ⇥</button>
+          <label>Fim <input type="number" id="trimEnd" min="0" step="0.1" value="0"></label>
+        </div>
+      </div>
+
+      <div class="card meta-card">
+        <div class="trim-head">
+          <h3>Metadados encontrados</h3>
+          <span id="metaSummary" class="muted"></span>
+        </div>
+        <div id="metaList" class="meta-list"></div>
+        <div class="meta-actions">
+          <button class="btn primary" id="quickClean" type="button">⚡ Limpar sem re-codificar</button>
+          <span class="muted small-text" id="quickCleanHint">Mantém a qualidade original; remove GPS, aparelho, datas e software.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Painel lateral: ferramentas -->
+    <aside class="tools">
+      <div class="file-info card">
+        <div class="file-name" id="fileName">—</div>
+        <div class="muted" id="fileDetails">—</div>
+        <button class="btn small ghost" id="newFile" type="button">Trocar vídeo</button>
+      </div>
+
+      <details class="card" open>
+        <summary>Enquadramento</summary>
+        <div class="field">
+          <span>Proporção</span>
+          <div class="seg" id="cropSeg">
+            <button data-crop="orig" class="on" type="button">Original</button>
+            <button data-crop="16:9" type="button">16:9</button>
+            <button data-crop="9:16" type="button">9:16</button>
+            <button data-crop="1:1" type="button">1:1</button>
+            <button data-crop="4:5" type="button">4:5</button>
+          </div>
+        </div>
+        <div class="field">
+          <span>Girar e espelhar</span>
+          <div class="row">
+            <button class="btn small" id="rotL" type="button" title="Girar 90° à esquerda">⟲ 90°</button>
+            <button class="btn small" id="rotR" type="button" title="Girar 90° à direita">⟳ 90°</button>
+            <button class="btn small" id="flipH" type="button" title="Espelhar horizontalmente">⇋</button>
+            <button class="btn small" id="flipV" type="button" title="Espelhar verticalmente">⇵</button>
+          </div>
+        </div>
+        <label class="field">
+          <span>Resolução de saída</span>
+          <select id="scale">
+            <option value="1">100% (original)</option>
+            <option value="0.75">75%</option>
+            <option value="0.5">50%</option>
+            <option value="0.25">25%</option>
+          </select>
+        </label>
+      </details>
+
+      <details class="card" open>
+        <summary>Cor e efeitos</summary>
+        <label class="field slider"><span>Brilho <output id="brightnessOut">100%</output></span><input type="range" id="brightness" min="0" max="200" value="100"></label>
+        <label class="field slider"><span>Contraste <output id="contrastOut">100%</output></span><input type="range" id="contrast" min="0" max="200" value="100"></label>
+        <label class="field slider"><span>Saturação <output id="saturateOut">100%</output></span><input type="range" id="saturate" min="0" max="300" value="100"></label>
+        <label class="field slider"><span>Desfoque <output id="blurOut">0px</output></span><input type="range" id="blur" min="0" max="20" value="0"></label>
+        <label class="check"><input type="checkbox" id="grayscale"> Preto e branco</label>
+        <button class="btn small ghost" id="resetFx" type="button">Restaurar cores</button>
+      </details>
+
+      <details class="card">
+        <summary>Velocidade e áudio</summary>
+        <label class="field">
+          <span>Velocidade</span>
+          <select id="speed">
+            <option value="0.5">0,5× (câmera lenta)</option>
+            <option value="0.75">0,75×</option>
+            <option value="1" selected>1× (normal)</option>
+            <option value="1.25">1,25×</option>
+            <option value="1.5">1,5×</option>
+            <option value="2">2× (acelerado)</option>
+          </select>
+        </label>
+        <label class="field slider"><span>Volume <output id="volumeOut">100%</output></span><input type="range" id="volume" min="0" max="200" value="100"></label>
+        <label class="check"><input type="checkbox" id="mute"> Remover o áudio</label>
+      </details>
+
+      <details class="card">
+        <summary>Texto e privacidade</summary>
+        <label class="field"><span>Texto sobre o vídeo</span><input type="text" id="overlayText" placeholder="Ex.: legenda ou marca d'água" maxlength="120"></label>
+        <div class="row">
+          <label class="field grow">
+            <span>Posição</span>
+            <select id="overlayPos">
+              <option value="bottom">Embaixo</option>
+              <option value="top">Em cima</option>
+              <option value="center">Centro</option>
+            </select>
+          </label>
+          <label class="field"><span>Cor</span><input type="color" id="overlayColor" value="#ffffff"></label>
+        </div>
+        <label class="field slider"><span>Tamanho <output id="overlaySizeOut">6%</output></span><input type="range" id="overlaySize" min="2" max="15" value="6"></label>
+        <hr>
+        <div class="field">
+          <span>Ocultar área (rostos, placas, telas)</span>
+          <p class="muted small-text">Clique em “Desenhar” e arraste sobre a prévia. A área fica pixelada no vídeo exportado.</p>
+          <div class="row">
+            <button class="btn small" id="drawRedact" type="button">▭ Desenhar área</button>
+            <button class="btn small ghost" id="clearRedact" type="button">Limpar áreas</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="card" open>
+        <summary>Exportar</summary>
+        <label class="field">
+          <span>Qualidade</span>
+          <select id="quality">
+            <option value="2500000">Leve (2,5 Mbps)</option>
+            <option value="6000000" selected>Boa (6 Mbps)</option>
+            <option value="12000000">Alta (12 Mbps)</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Formato</span>
+          <select id="format"></select>
+        </label>
+        <label class="check"><input type="checkbox" id="randomName" checked> Nome de arquivo aleatório (o nome original também pode identificar você)</label>
+        <button class="btn primary wide" id="exportBtn" type="button">⬇ Exportar vídeo editado</button>
+        <p class="muted small-text">A exportação re-codifica o vídeo: o arquivo final nasce sem nenhum metadado do original. Ela acontece em tempo real (um vídeo de 1 min leva ~1 min ÷ velocidade).</p>
+      </details>
+    </aside>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="metadata.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
