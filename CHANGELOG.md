@@ -3,6 +3,23 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [2.3.0] - 2026-11-20
+
+### Alterado
+- **Layout reorganizado e mais uniforme**: todas as seções com a mesma largura, cartões e espaçamentos iguais.
+  Na tela inicial, as duas formas de importar ficam lado a lado (uma embaixo da outra no celular).
+- **Agendar no Facebook em etapas numeradas** (Conectar → Legendas → Hashtags → Horários → Revisar → Agendar), com uma
+  barra de etapas fixa no topo para pular entre elas.
+- **Legendas**: lista para **sortear** entre os posts (sem repetir até usar todas) ou aplicar na ordem.
+- **Hashtags**: lista para sortear, quantidade por post e hashtags fixas.
+- **Botão 🎲 em cada post** para sortear outra legenda ou outras hashtags só para ele.
+- **Horários em passos de 10 minutos**: primeiro post + intervalo (padrão: a cada 10 minutos). Os horários já são
+  sugeridos ao abrir a tela, e qualquer horário digitado é arredondado para o múltiplo de 10 mais próximo.
+- Tipo de post, título e planilha foram para a seção **Avançado**.
+
+### Removido
+- Conjuntos de hashtags salvos e distribuição por dias da semana (substituídos pelas listas para sortear e pelo intervalo).
+
 ## [2.2.5] - 2026-11-20
 
 ### Alterado
@@ -127,6 +144,7 @@ Primeira versão, como **Editor Limpo** (editor de vídeo com limpeza de metadad
 - Publicação automática no GitHub Pages e criação de Release a cada tag `v*`.
 - Licença MIT.
 
+[2.3.0]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.3.0
 [2.2.5]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.2.5
 [2.2.4]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.2.4
 [2.2.3]: https://github.com/ast1500/Relogio-Digital/releases/tag/v2.2.3

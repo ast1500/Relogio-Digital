@@ -102,3 +102,39 @@ test('datas inválidas na planilha são ignoradas', () => {
   assert.equal(A.parseDateTime('31/02/2026', '10:00'), null);
   assert.equal(A.parseDateTime('ontem', '10:00'), null);
 });
+
+// gerador "aleatório" previsível para os testes
+const seeded = (seed = 1) => () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+
+test('lista de legendas: uma por linha, ou separadas por linha em branco', () => {
+  assert.deepEqual(A.parseCaptionPool('Primeira\nSegunda\n\nTerceira'), ['Primeira\nSegunda', 'Terceira']);
+  assert.deepEqual(A.parseCaptionPool(' Uma \nDuas\r\nTrês\n'), ['Uma', 'Duas', 'Três']);
+  assert.deepEqual(A.parseCaptionPool('   '), []);
+});
+
+test('sorteio de legendas usa todas antes de repetir e não repete seguida', () => {
+  const pool = ['a', 'b', 'c'];
+  const out = A.drawMany(pool, 9, seeded(7));
+  for (let i = 0; i < 9; i += 3) assert.deepEqual(out.slice(i, i + 3).sort(), ['a', 'b', 'c']);
+  for (let i = 1; i < out.length; i++) assert.notEqual(out[i], out[i - 1]);
+  assert.deepEqual(A.drawMany([], 3), []);
+  assert.notEqual(A.drawOther(pool, 'a', seeded(3)), 'a');
+});
+
+test('hashtags sorteadas: fixas + N da lista, sem repetir', () => {
+  const tags = A.pickHashtags('#a #b #c #d #marca', 2, 'marca', seeded(5)).split(' ');
+  assert.equal(tags[0], '#marca');
+  assert.equal(tags.length, 3);
+  assert.equal(new Set(tags.map((t) => t.toLowerCase())).size, 3);
+  assert.equal(A.pickHashtags('#a #b', 10, '', seeded(1)).split(' ').length, 2, 'não inventa hashtags além da lista');
+});
+
+test('horários em passos de 10 minutos', () => {
+  assert.equal(A.fmtTime(A.roundTo10(new Date(2026, 0, 1, 10, 14))), '10:10');
+  assert.equal(A.fmtTime(A.roundTo10(new Date(2026, 0, 1, 10, 15))), '10:20');
+  assert.equal(A.fmtTime(A.roundTo10(new Date(2026, 0, 1, 10, 11), true)), '10:20');
+  assert.equal(A.fmtTime(A.nextSlot(new Date(2026, 0, 1, 10, 1))), '10:40');
+  const d = A.distributeInterval(4, new Date(2026, 0, 1, 23, 33), 10);
+  assert.deepEqual(d.map((x) => A.fmtTime(x)), ['23:30', '23:40', '23:50', '00:00']);
+  assert.equal(A.distributeInterval(2, new Date(2026, 0, 1, 9, 0), 1440)[1].getDate(), 2);
+});
