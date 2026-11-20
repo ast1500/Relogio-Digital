@@ -18,8 +18,10 @@
     get(k, d) { try { const v = localStorage.getItem('vl-agenda-' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem('vl-agenda-' + k, JSON.stringify(v)); } catch (e) { /* sem armazenamento */ } },
   };
-  const configAppId = () => store.get('appId', '') || ((window.VIDEO_LIMPO_CONFIG || {}).facebookAppId || '');
-  const configLoginId = () => store.get('configId', '') || ((window.VIDEO_LIMPO_CONFIG || {}).facebookConfigId || '');
+  // Os números do config.js têm prioridade; o que for digitado na tela só vale se o site não tiver um configurado.
+  const configAppId = () => ((window.VIDEO_LIMPO_CONFIG || {}).facebookAppId || '') || store.get('appId', '');
+  const configLoginId = () => ((window.VIDEO_LIMPO_CONFIG || {}).facebookConfigId || '') || store.get('configId', '');
+  const builtInIds = () => !!(window.VIDEO_LIMPO_CONFIG || {}).facebookAppId;
 
   const S = {
     open: false, title: '', rows: [], hidden: [],
@@ -141,7 +143,7 @@
         '<button class="btn primary" data-sact="login" type="button"' + (appId ? '' : ' disabled') + '><svg class="ic sm"><use href="#i-facebook"/></svg> Entrar com Facebook</button>' +
         '<button class="btn small" data-sact="mock" type="button">Testar no modo simulação</button></div>' +
         (appId ? '' : '<p class="fc-note">Para entrar com o Facebook, falta configurar o <b>App ID</b> (veja abaixo). Enquanto isso, dá para testar tudo no modo simulação.</p>') +
-        '<details class="fc-details"><summary>Configurar App ID</summary><div class="appid">' +
+        '<details class="fc-details"' + (builtInIds() ? ' hidden' : '') + '><summary>Configurar App ID</summary><div class="appid">' +
         '<p class="sub">Número público do app criado em developers.facebook.com (com o domínio <code>' + esc(location.hostname || 'ast1500.github.io') + '</code> autorizado). Fica salvo só neste navegador.</p>' +
         '<label class="field"><span>ID do app</span><input type="text" inputmode="numeric" id="schedAppId" placeholder="Ex.: 123456789012345" value="' + esc(store.get('appId', '')) + '"></label>' +
         '<label class="field"><span>ID da configuração <small class="sub">(do "Login do Facebook para Empresas")</small></span><input type="text" inputmode="numeric" id="schedConfigId" placeholder="Ex.: 987654321098765" value="' + esc(store.get('configId', '')) + '"></label>' +
