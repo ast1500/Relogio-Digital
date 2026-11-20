@@ -384,6 +384,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .srow .progress > div, .sched .fc-actions .progress > div { height: 100%; background: var(--yellow); transition: width .25s; }
 .sched .fc-actions .progress { flex: 1 1 200px; height: 18px; background: var(--paper-2); border: var(--bw) solid var(--ink); border-radius: 99px; overflow: hidden; }
 
+.update-bar {
+  position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 30; width: max-content; max-width: calc(100% - 24px);
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; font-weight: 800;
+  background: var(--paper); border: var(--bw) solid var(--ink); border-radius: 14px; box-shadow: var(--shadow);
+}
+
 [hidden] { display: none !important; }
 
 /* ---------- responsivo ---------- */

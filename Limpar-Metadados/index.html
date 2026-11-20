@@ -8,9 +8,9 @@
   <meta name="description" content="Remova GPS, modelo do aparelho, datas e outros metadados dos seus vídeos, direto no navegador.">
   <title>Vídeo Limpo</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2.2.2">
 </head>
-<body>
+<body data-version="2.2.2">
   <div class="bg" aria-hidden="true"><span class="bg-circle"></span><span class="bg-slab"></span></div>
 
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -226,19 +226,24 @@
     </section>
 
     <footer class="app-foot">
-      Vídeo Limpo <b>v2.2.1</b> · código aberto (MIT) ·
+      Vídeo Limpo <b>v2.2.2</b> · código aberto (MIT) ·
       <a href="https://github.com/ast1500/Relogio-Digital" rel="noopener">GitHub</a>
     </footer>
   </div>
 
+  <div id="updateBar" class="update-bar" hidden>
+    <span>Nova versão do Vídeo Limpo disponível.</span>
+    <button class="btn small primary" id="updateBtn" type="button">Atualizar</button>
+  </div>
+
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
-  <script src="config.js"></script>
-  <script src="metadata.js"></script>
-  <script src="zip.js"></script>
-  <script src="schedule.js"></script>
-  <script src="facebook.js"></script>
-  <script src="scheduler.js"></script>
-  <script src="app.js"></script>
+  <script src="config.js?v=2.2.2"></script>
+  <script src="metadata.js?v=2.2.2"></script>
+  <script src="zip.js?v=2.2.2"></script>
+  <script src="schedule.js?v=2.2.2"></script>
+  <script src="facebook.js?v=2.2.2"></script>
+  <script src="scheduler.js?v=2.2.2"></script>
+  <script src="app.js?v=2.2.2"></script>
 </body>
 </html>
